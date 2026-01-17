@@ -1,0 +1,96 @@
+
+================================================================================
+Top 10 Most Correlated Commodities with Gold (GC=F) (by |correlation|)
+================================================================================
+
+Silver (SI=F)           0.799304
+Platinum (PL=F)         0.573123
+Palladium (PA=F)        0.381281
+Copper (HG=F)           0.258202
+RBOB Gasoline (RB=F)    0.155546
+Soybean Oil (ZL=F)      0.149687
+Soybeans (ZS=F)         0.143429
+Crude Oil (CL=F)        0.131127
+Aluminum (ALI=F)        0.124421
+Brent Oil (BZ=F)        0.122448
+
+
+================================================================================
+Top 10 Most Correlated Commodities with Silver (SI=F) (by |correlation|)
+================================================================================
+
+Gold (GC=F)             0.799304
+Platinum (PL=F)         0.635577
+Palladium (PA=F)        0.446889
+Copper (HG=F)           0.355335
+Soybean Oil (ZL=F)      0.184630
+RBOB Gasoline (RB=F)    0.178391
+Aluminum (ALI=F)        0.177630
+Crude Oil (CL=F)        0.165263
+Brent Oil (BZ=F)        0.164295
+Soybeans (ZS=F)         0.155703
+
+
+================================================================================
+Top 10 Most Correlated Commodities with Crude Oil (CL=F) (by |correlation|)
+================================================================================
+
+Brent Oil (BZ=F)        0.885241
+RBOB Gasoline (RB=F)    0.721567
+Heating Oil (HO=F)      0.652689
+Copper (HG=F)           0.285728
+Sugar (SB=F)            0.242357
+Soybean Oil (ZL=F)      0.242013
+Platinum (PL=F)         0.216179
+Aluminum (ALI=F)        0.208441
+Cotton (CT=F)           0.203367
+Palladium (PA=F)        0.190769
+
+
+================================================================================
+Top 10 Most Correlated Commodities with Bitcoin (BTC-USD) (by |correlation|)
+================================================================================
+
+RBOB Gasoline (RB=F)    0.161834
+Platinum (PL=F)         0.139815
+Aluminum (ALI=F)        0.134066
+Silver (SI=F)           0.123703
+Soybean Oil (ZL=F)      0.110051
+Brent Oil (BZ=F)        0.108682
+Crude Oil (CL=F)        0.106516
+Palladium (PA=F)        0.102745
+Copper (HG=F)           0.101541
+Gold (GC=F)             0.091008
+
+
+================================================================================
+Top 10 Most Correlated Commodities with Ethereum (ETH-USD) (by |correlation|)
+================================================================================
+
+RBOB Gasoline (RB=F)    0.154722
+Aluminum (ALI=F)        0.132405
+Platinum (PL=F)         0.130689
+Silver (SI=F)           0.125903
+Copper (HG=F)           0.122768
+Soybean Oil (ZL=F)      0.113619
+Brent Oil (BZ=F)        0.109996
+Crude Oil (CL=F)        0.101966
+Palladium (PA=F)        0.097970
+Sugar (SB=F)            0.095071
+
+
+================================================================================
+Top 10 Most Correlated Commodities with USD Index (DX-Y.NYB) (by |correlation|)
+================================================================================
+
+Gold (GC=F)            -0.422066
+Platinum (PL=F)        -0.418907
+Silver (SI=F)          -0.403656
+Copper (HG=F)          -0.348298
+Palladium (PA=F)       -0.300181
+Aluminum (ALI=F)       -0.175083
+Cocoa (CC=F)           -0.167326
+RBOB Gasoline (RB=F)   -0.119271
+Soybeans (ZS=F)        -0.112962
+Coffee (KC=F)          -0.112907
+
