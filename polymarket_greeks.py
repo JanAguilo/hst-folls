@@ -4,10 +4,16 @@ Polymarket Binary Options Greeks Calculator - Live Data Version
 Calculate option Greeks for live Polymarket prediction markets.
 Supports both probability-based models and barrier option models for markets with strikes.
 
+Greeks are NORMALIZED for practical use:
+- Delta: $ change per 1% move in underlying (or per 1pp move in probability)
+- Gamma: Delta change per 1% move
+- Vega: $ change per 1% increase in volatility
+- Theta: $ change per day
+
 Usage:
     python polymarket_greeks.py -n 20                    # Fetch top 20 markets
     python polymarket_greeks.py -s "bitcoin"             # Search for Bitcoin markets
-    python polymarket_greeks.py -s "bitcoin" -n 5        # Top 5 Bitcoin markets
+    python polymarket_greeks.py -s "silver" -n 15        # Top 15 Silver markets
 
 Author: Pol (Polymarket Hackathon 2025)
 """
@@ -15,10 +21,15 @@ Author: Pol (Polymarket Hackathon 2025)
 import numpy as np
 from scipy.stats import norm
 from dataclasses import dataclass
-from typing import Optional, List, Dict, Tuple
+from typing import Optional, List, Dict
 from datetime import datetime, timezone
 import json
 import re
+
+
+# =============================================================================
+# DATA STRUCTURES
+# =============================================================================
 
 @dataclass
 class PolymarketMarket:
@@ -40,8 +51,24 @@ class PolymarketMarket:
         if isinstance(clob_token_ids, str):
             clob_token_ids = [clob_token_ids]
         outcomes = json.loads(data.get('outcomes', '["Yes", "No"]'))
+        
+        # FIXED: Better date parsing
         end_date_str = data.get('endDate') or data.get('endDateIso')
-        end_date = datetime.fromisoformat(end_date_str.replace('Z', '+00:00')) if end_date_str else datetime.now(timezone.utc)
+        if end_date_str:
+            try:
+                # Handle ISO format with Z
+                if isinstance(end_date_str, str):
+                    if end_date_str.endswith('Z'):
+                        end_date_str = end_date_str[:-1] + '+00:00'
+                    end_date = datetime.fromisoformat(end_date_str)
+                else:
+                    # Might be timestamp
+                    end_date = datetime.fromtimestamp(float(end_date_str), tz=timezone.utc)
+            except Exception as e:
+                print(f"Warning: Could not parse date '{end_date_str}': {e}")
+                end_date = datetime.now(timezone.utc)
+        else:
+            end_date = datetime.now(timezone.utc)
         
         return cls(
             id=data.get('id', ''), question=data.get('question', ''), condition_id=data.get('conditionId', ''),
@@ -58,8 +85,16 @@ class PolymarketMarket:
     def no_price(self) -> float:
         return self.outcome_prices[1] if len(self.outcome_prices) > 1 else 1 - self.yes_price
 
+
 @dataclass 
 class Greeks:
+    """
+    Normalized Greeks for practical interpretation:
+    - delta: $ change per 1% move in underlying (or 1pp probability)
+    - gamma: Change in delta per 1% move
+    - vega: $ change per 1% vol increase
+    - theta: $ change per day
+    """
     delta: float
     gamma: float
     vega: float
@@ -78,101 +113,181 @@ class Greeks:
         return self.__mul__(scalar)
     
     def to_dict(self) -> dict:
-        return {k: round(v, 6 if k != 'theta' else 8) for k, v in 
-                [('delta', self.delta), ('gamma', self.gamma), ('vega', self.vega), 
-                 ('theta', self.theta), ('rho', self.rho)]}
+        return {'delta': round(self.delta, 4), 'gamma': round(self.gamma, 4), 
+                'vega': round(self.vega, 4), 'theta': round(self.theta, 6), 'rho': round(self.rho, 4)}
+
+
+# =============================================================================
+# PROBABILITY-BASED MODELS (for markets without clear underlying)
+# =============================================================================
 
 class BlackScholesDigital:
-    def __init__(self, risk_free_rate: float = 0.0):
-        self.r = risk_free_rate
+    """Greeks for binary options in probability space."""
     
     def greeks(self, p: float, sigma: float, T: float, is_yes: bool = True) -> Greeks:
+        """
+        Normalized Greeks for a digital option on probability.
+        
+        Delta = $0.01 per 1 percentage point move in probability
+        (e.g., if p moves from 65% to 66%, position changes by $0.01 per share)
+        """
         if T <= 1e-10:
             return Greeks(0, 0, 0, 0, 0)
+        
         p = np.clip(p, 0.01, 0.99)
+        sqrt_T = np.sqrt(T)
         p_vol = sigma * p * (1 - p)
-        delta = 1.0
-        gamma = sigma * (1 - 2*p)
-        vega = -(p - 0.5) * np.sqrt(T) * p * (1 - p)
-        theta = (p - 0.5) * (p_vol**2 / (2 * T)) / 365 if T > 0 else 0
+        
+        # Delta: For a digital option, value = p, so dV/dp = 1
+        # Normalized: $0.01 change per 1pp move (since shares are $1 max)
+        delta = 0.01
+        
+        # Gamma: d(delta)/dp - how does sensitivity change?
+        # In prob space: gamma = sigma * (1 - 2p) reflects vol changing with p
+        gamma = sigma * (1 - 2*p) * 0.0001  # Normalized and scaled
+        
+        # Vega: dV/d(sigma) - sensitivity to vol
+        vega = -(p - 0.5) * sqrt_T * p * (1 - p) * 0.01
+        
+        # Theta: time decay per day
+        theta_dir = p - 0.5
+        theta_mag = p_vol**2 / (2 * T) if T > 0 else 0
+        theta = theta_dir * theta_mag / 365
+        
         sign = 1 if is_yes else -1
         return Greeks(sign * delta, sign * gamma, sign * vega, sign * theta, 0)
 
+
 class BrownianBridge:
-    def effective_volatility(self, tau: float, T: float, sigma: float) -> float:
-        return sigma * np.sqrt(tau / T) if T > 0 and tau > 0 else 0.0
+    """Brownian Bridge model - better for prediction markets."""
     
     def greeks(self, p: float, sigma: float, tau: float, T: float, is_yes: bool = True) -> Greeks:
+        """
+        Greeks with bridge dynamics (vol decays as expiry approaches).
+        sigma_eff = sigma * sqrt(tau/T)
+        """
         if tau <= 1e-10:
             return Greeks(0, 0, 0, 0, 0)
-        T = tau if T <= 0 else T
+        
+        T = max(T, tau)
         p = np.clip(p, 0.01, 0.99)
-        sigma_eff = self.effective_volatility(tau, T, sigma)
+        sigma_eff = sigma * np.sqrt(tau / T)
         p_vol = sigma_eff * p * (1 - p)
-        delta = 1.0
-        gamma = sigma_eff * (1 - 2*p)
-        vega = -(p - 0.5) * np.sqrt(tau / T) * p * (1 - p)
+        
+        delta = 0.01  # $0.01 per 1pp move
+        gamma = sigma_eff * (1 - 2*p) * 0.0001
+        vega = -(p - 0.5) * np.sqrt(tau / T) * p * (1 - p) * 0.01
+        
         theta_dir = p - 0.5
         theta_mag = p_vol**2 / (2 * tau) if tau > 0 else 0
         theta_decay = 0.5 * sigma * p * (1-p) / np.sqrt(tau * T) if tau > 0 and T > 0 else 0
         theta = (theta_dir * theta_mag - abs(theta_dir) * theta_decay) / 365
+        
         sign = 1 if is_yes else -1
         return Greeks(sign * delta, sign * gamma, sign * vega, sign * theta, 0)
 
+
+# =============================================================================
+# BARRIER OPTION MODEL (for markets with underlying asset and strike)
+# =============================================================================
+
 class BarrierOptionGreeks:
+    """
+    Digital/binary option Greeks with underlying asset.
+    
+    NORMALIZED for practical use:
+    - Delta: $ change per 1% move in underlying
+    - Gamma: Delta change per 1% move in underlying
+    - Vega: $ change per 1 percentage point vol increase
+    - Theta: $ change per day
+    """
+    
     def digital_call_greeks(self, S: float, K: float, T: float, sigma: float, r: float = 0.0) -> Greeks:
+        """
+        Greeks for a digital call (pays $1 if S > K at expiry).
+        
+        Args:
+            S: Current underlying price
+            K: Strike price
+            T: Time to expiry in years
+            sigma: Volatility (annualized)
+            r: Risk-free rate
+        """
         if T <= 1e-10:
             return Greeks(0, 0, 0, 0, 0)
+        
         sigma = max(sigma, 0.01)
-        d2 = (np.log(S / K) + (r - 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
-        delta = norm.pdf(d2) / (S * sigma * np.sqrt(T))
-        gamma = -norm.pdf(d2) * d2 / (S**2 * sigma**2 * T)
-        vega = -norm.pdf(d2) * d2 * np.sqrt(T) / sigma
-        theta = (-S * norm.pdf(d2) * sigma / (2 * np.sqrt(T)) + 
-                norm.pdf(d2) * (r - 0.5 * sigma**2) / (sigma * np.sqrt(T))) / 365
+        sqrt_T = np.sqrt(T)
+        
+        d2 = (np.log(S / K) + (r - 0.5 * sigma**2) * T) / (sigma * sqrt_T)
+        n_d2 = norm.pdf(d2)
+        
+        # Raw Greeks (per $1 move in underlying)
+        raw_delta = n_d2 / (S * sigma * sqrt_T)
+        raw_gamma = -n_d2 * (d2 + sigma * sqrt_T) / (S**2 * sigma**2 * T)
+        
+        # NORMALIZED Delta: $ change per 1% move in S
+        # 1% move = S * 0.01, so delta_norm = raw_delta * S * 0.01
+        delta = raw_delta * S * 0.01
+        
+        # NORMALIZED Gamma: change in delta per 1% move
+        # We want d(delta_norm)/d(1% move in S)
+        # delta_norm = raw_delta * S * 0.01
+        # d(delta_norm)/dS = (d(raw_delta)/dS * S + raw_delta) * 0.01
+        # d(delta_norm)/d(1% move) = d(delta_norm)/dS * S * 0.01
+        gamma = (raw_gamma * S + raw_delta) * S * 0.0001
+        
+        # NORMALIZED Vega: $ change per 1pp vol increase
+        d1 = d2 + sigma * sqrt_T
+        raw_vega = n_d2 * d1 * sqrt_T / sigma
+        vega = raw_vega * 0.01
+        
+        # Theta: daily decay (in $ per day)
+        theta_term1 = n_d2 * sigma / (2 * sqrt_T)
+        theta_term2 = n_d2 * d2 * (r - 0.5 * sigma**2) / (sigma * sqrt_T)
+        theta = -(theta_term1 - theta_term2 * 0.5) / 365
+        
         return Greeks(delta, gamma, vega, theta, 0)
     
     def digital_put_greeks(self, S: float, K: float, T: float, sigma: float, r: float = 0.0) -> Greeks:
+        """Greeks for a digital put (pays $1 if S < K at expiry)."""
         g = self.digital_call_greeks(S, K, T, sigma, r)
-        return Greeks(-g.delta, -g.gamma, -g.vega, -g.theta, 0)
+        return Greeks(-g.delta, g.gamma, -g.vega, g.theta, 0)
     
     def greeks_from_market(self, market: PolymarketMarket, current_price: float, 
                           sigma: float, is_yes: bool = True) -> Optional[Greeks]:
+        """Calculate Greeks for a market with known underlying price."""
         strike = extract_strike_from_question(market.question)
         option_type = infer_option_type(market.question)
+        
         if not strike or option_type == 'unknown':
             return None
+        
         tau = max((market.end_date - datetime.now(timezone.utc)).total_seconds() / (365.25 * 24 * 3600), 1/365)
-        greeks = self.digital_call_greeks(current_price, strike, tau, sigma) if option_type == 'call' else \
-                 self.digital_put_greeks(current_price, strike, tau, sigma)
-        return Greeks(-greeks.delta, -greeks.gamma, -greeks.vega, -greeks.theta, 0) if not is_yes else greeks
+        
+        if option_type == 'call':
+            greeks = self.digital_call_greeks(current_price, strike, tau, sigma)
+        else:
+            greeks = self.digital_put_greeks(current_price, strike, tau, sigma)
+        
+        # If holding NO, flip the sign on directional greeks
+        if not is_yes:
+            greeks = Greeks(-greeks.delta, greeks.gamma, -greeks.vega, greeks.theta, 0)
+        
+        return greeks
 
-def fetch_yahoo_current_price(ticker: str) -> Optional[float]:
-    try:
-        import yfinance as yf
-        data = yf.Ticker(ticker).history(period="1d")
-        return float(data['Close'].iloc[-1]) if len(data) > 0 else None
-    except Exception as e:
-        print(f"      Error fetching {ticker}: {e}")
-        return None
 
-def fetch_yahoo_prices(ticker: str, period: str = "1mo") -> Optional[List[float]]:
-    try:
-        import yfinance as yf
-        hist = yf.Ticker(ticker).history(period=period)
-        return hist['Close'].tolist() if len(hist) > 0 else None
-    except:
-        return None
-
-def calculate_realized_vol(prices: List[float], annualize: bool = True) -> float:
-    if len(prices) < 2:
-        return 0.5
-    returns = np.diff(np.log(np.array(prices)))
-    vol = np.std(returns)
-    return vol * np.sqrt(252) if annualize else vol
+# =============================================================================
+# HELPER FUNCTIONS
+# =============================================================================
 
 def extract_strike_from_question(question: str) -> Optional[float]:
-    for pattern in [r'\$([0-9,]+(?:\.[0-9]+)?)', r'([0-9,]+(?:\.[0-9]+)?)\s*(?:dollars|usd)']:
+    """Extract strike price from market question."""
+    patterns = [
+        r'\$([0-9,]+(?:\.[0-9]+)?)',
+        r'([0-9,]+(?:\.[0-9]+)?)\s*(?:dollars|usd)',
+    ]
+    for pattern in patterns:
         matches = re.findall(pattern, question, re.IGNORECASE)
         if matches:
             try:
@@ -181,148 +296,220 @@ def extract_strike_from_question(question: str) -> Optional[float]:
                 pass
     return None
 
+
 def infer_option_type(question: str) -> str:
+    """Infer if market is call-like or put-like."""
     q = question.lower()
-    if any(w in q for w in ['reach', 'above', 'over', 'exceed', 'higher than']):
+    if any(w in q for w in ['reach', 'above', 'over', 'exceed', 'higher than', 'hit (high)', 'hit(high)']):
         return 'call'
-    if any(w in q for w in ['dip', 'below', 'under', 'fall', 'lower than']):
+    if any(w in q for w in ['dip', 'below', 'under', 'fall', 'lower than', 'hit (low)', 'hit(low)']):
         return 'put'
     return 'unknown'
 
+
 def infer_ticker_from_question(question: str) -> Optional[str]:
+    """Infer Yahoo Finance ticker from market question."""
     q = question.lower()
     tickers = {
-        'bitcoin': 'BTC-USD', 'btc': 'BTC-USD', 'ethereum': 'ETH-USD', 'eth': 'ETH-USD',
-        'solana': 'SOL-USD', 'sol': 'SOL-USD', 'gold': 'GC=F', 'silver': 'SI=F',
-        'oil': 'CL=F', 'crude': 'CL=F', 's&p 500': '^GSPC', 'sp500': '^GSPC', 's&p': '^GSPC',
-        'nasdaq': '^IXIC', 'dow': '^DJI', 'tesla': 'TSLA', 'tsla': 'TSLA',
-        'apple': 'AAPL', 'aapl': 'AAPL', 'nvidia': 'NVDA', 'nvda': 'NVDA'
+        'bitcoin': 'BTC-USD', 'btc': 'BTC-USD',
+        'ethereum': 'ETH-USD', 'eth': 'ETH-USD', 'ether': 'ETH-USD',
+        'solana': 'SOL-USD', 'sol': 'SOL-USD',
+        'gold': 'GC=F', 'silver': 'SI=F',
+        'oil': 'CL=F', 'crude': 'CL=F', 'wti': 'CL=F',
+        's&p 500': '^GSPC', 'sp500': '^GSPC', 's&p': '^GSPC',
+        'nasdaq': '^IXIC', 'dow': '^DJI',
+        'tesla': 'TSLA', 'apple': 'AAPL', 'nvidia': 'NVDA',
     }
     for key, ticker in tickers.items():
         if key in q:
             return ticker
     return None
 
-@dataclass
-class Position:
-    market: PolymarketMarket
-    quantity: float
-    is_yes: bool
-    entry_price: float = 0.0
-    
-    @property
-    def notional(self) -> float:
-        price = self.market.yes_price if self.is_yes else self.market.no_price
-        return abs(self.quantity) * price
-    
-    @property
-    def pnl(self) -> float:
-        current = self.market.yes_price if self.is_yes else self.market.no_price
-        return self.quantity * (current - self.entry_price)
 
-class Portfolio:
-    BRIDGE_THRESHOLD_DAYS = 7
+def fetch_yahoo_current_price(ticker: str) -> Optional[float]:
+    """Fetch current price from Yahoo Finance."""
+    try:
+        import yfinance as yf
+        data = yf.Ticker(ticker).history(period="1d")
+        return float(data['Close'].iloc[-1]) if len(data) > 0 else None
+    except Exception as e:
+        return None
+
+
+def fetch_yahoo_prices(ticker: str, period: str = "1mo") -> Optional[List[float]]:
+    """Fetch historical prices from Yahoo Finance."""
+    try:
+        import yfinance as yf
+        hist = yf.Ticker(ticker).history(period=period)
+        return hist['Close'].tolist() if len(hist) > 0 else None
+    except:
+        return None
+
+
+def calculate_realized_vol(prices: List[float], annualize: bool = True) -> float:
+    """Calculate realized volatility from price series."""
+    if len(prices) < 2:
+        return 0.5
+    returns = np.diff(np.log(np.array(prices)))
+    vol = np.std(returns)
+    return vol * np.sqrt(252) if annualize else vol
+
+
+# =============================================================================
+# API FUNCTIONS
+# =============================================================================
+
+def is_relevant_match(question: str, search_term: str) -> bool:
+    """
+    Check if search term is relevant in the question.
+    Filters out false matches like 'oil' in 'Oilers' or 'gold' in 'Golden Knights'.
+    """
+    question_lower = question.lower()
+    search_lower = search_term.lower()
     
-    def __init__(self, model: str = 'auto'):
-        self.positions: List[Position] = []
-        self.model = model
-        self._bs = BlackScholesDigital()
-        self._bridge = BrownianBridge()
+    # Asset-specific context keywords that indicate a real match
+    asset_contexts = {
+        'oil': ['crude', 'barrel', 'brent', 'wti', 'price', '$', 'petroleum', 'energy'],
+        'gold': ['price', '$', 'ounce', 'troy', 'bullion', 'precious metal', 'xau'],
+        'silver': ['price', '$', 'ounce', 'troy', 'bullion', 'precious metal', 'xag'],
+        'bitcoin': ['btc', 'crypto', 'price', '$', 'satoshi', 'blockchain'],
+        'ethereum': ['eth', 'crypto', 'price', '$', 'ether', 'blockchain', 'vitalik'],
+        'solana': ['sol', 'crypto', 'price', '$', 'blockchain'],
+    }
     
-    def add_position(self, position: Position):
-        self.positions.append(position)
+    # Sports team names to explicitly exclude
+    false_positives = {
+        'oil': ['oilers', 'oiler'],
+        'gold': ['golden knights', 'golden state', 'golden'],
+        'silver': [],  # Add if needed
+    }
     
-    def _time_to_expiry(self, market: PolymarketMarket) -> float:
-        return max((market.end_date - datetime.now(timezone.utc)).total_seconds() / (365.25 * 24 * 3600), 1/365)
+    # Check for false positives first
+    if search_lower in false_positives:
+        for false_match in false_positives[search_lower]:
+            if false_match in question_lower:
+                return False
     
-    def _select_model(self, market: PolymarketMarket) -> str:
-        if self.model != 'auto':
-            return self.model
-        return 'bridge' if self._time_to_expiry(market) * 365 > self.BRIDGE_THRESHOLD_DAYS else 'bs'
+    # If search term appears in question
+    if search_lower in question_lower:
+        # For known assets, verify context
+        if search_lower in asset_contexts:
+            # Check if any context keyword appears
+            for context in asset_contexts[search_lower]:
+                if context in question_lower:
+                    return True
+            # Also allow if it's a whole word match (not part of another word)
+            import re
+            if re.search(r'\b' + re.escape(search_lower) + r'\b', question_lower):
+                # Additional check: contains price/financial indicators
+                if any(indicator in question_lower for indicator in ['$', 'price', 'reach', 'hit', 'above', 'below']):
+                    return True
+            return False
+        else:
+            # For non-asset searches, allow any match
+            return True
     
-    def calculate_greeks(self, position: Position, sigma: float = 0.5, 
-                        underlying_price: Optional[float] = None, use_barrier_model: bool = True) -> Greeks:
-        tau = self._time_to_expiry(position.market)
-        if use_barrier_model and underlying_price:
-            greeks = BarrierOptionGreeks().greeks_from_market(position.market, underlying_price, sigma, position.is_yes)
-            if greeks:
-                return greeks * position.quantity
-        p = np.clip(position.market.yes_price if position.is_yes else position.market.no_price, 0.01, 0.99)
-        model = self._select_model(position.market)
-        greeks = self._bridge.greeks(p, sigma, tau, max(30/365, tau), position.is_yes) if model == 'bridge' else \
-                 self._bs.greeks(p, sigma, tau, position.is_yes)
-        return greeks * position.quantity
-    
-    def aggregate_greeks(self, volatilities: Optional[Dict[str, float]] = None,
-                        underlying_prices: Optional[Dict[str, float]] = None, use_barrier_model: bool = True) -> Greeks:
-        total = Greeks(0, 0, 0, 0, 0)
-        for pos in self.positions:
-            sigma = (volatilities or {}).get(pos.market.id, 0.5)
-            ticker = infer_ticker_from_question(pos.market.question)
-            price = (underlying_prices or {}).get(ticker) if ticker else None
-            total = total + self.calculate_greeks(pos, sigma, price, use_barrier_model)
-        return total
+    return False
+
 
 def fetch_live_markets(limit: int = 10, search: str = None) -> List[PolymarketMarket]:
+    """Fetch markets from Polymarket API."""
     import requests
-    headers = {'Accept': 'application/json', 'Accept-Encoding': 'gzip, deflate',
-               'User-Agent': 'PolymarketGreeksCalculator/1.0'}
+    
+    headers = {
+        'Accept': 'application/json',
+        'Accept-Encoding': 'gzip, deflate',
+        'User-Agent': 'PolymarketGreeksCalculator/1.0',
+    }
     
     if search:
-        url, params = "https://gamma-api.polymarket.com/events", {
-            "active": "true", "closed": "false", "limit": 100, "order": "volume24hr", "ascending": "false"}
+        # FIXED: Search through markets endpoint directly for better results
+        url = "https://gamma-api.polymarket.com/markets"
+        params = {
+            "active": "true", 
+            "closed": "false", 
+            "limit": 200,  # Fetch more to filter
+            "order": "volume24hr", 
+            "ascending": "false"
+        }
     else:
-        url, params = "https://gamma-api.polymarket.com/markets", {
-            "active": "true", "closed": "false", "limit": limit, "order": "volume24hr", "ascending": "false"}
+        url = "https://gamma-api.polymarket.com/markets"
+        params = {"active": "true", "closed": "false", "limit": limit, "order": "volume24hr", "ascending": "false"}
     
     try:
-        data = requests.get(url, params=params, headers=headers, timeout=15).json()
+        response = requests.get(url, params=params, headers=headers, timeout=15)
+        response.raise_for_status()
+        data = response.json()
         markets = []
         
         if search:
-            for event in data:
-                title = event.get('title', '') or event.get('question', '') or ''
-                if search.lower() not in title.lower() and search.lower() not in event.get('description', '').lower():
+            # FIXED: Use smart matching to avoid false positives
+            for m in data:
+                try:
+                    market = PolymarketMarket.from_api_response(m)
+                    # Use relevance checking
+                    if is_relevant_match(market.question, search):
+                        markets.append(market)
+                        if len(markets) >= limit:
+                            break
+                except Exception as e:
+                    print(f"Warning: Failed to parse market: {e}")
                     continue
-                for m in event.get('markets', []):
-                    try:
-                        markets.append(PolymarketMarket.from_api_response(m))
-                    except:
-                        continue
-                if len(markets) >= limit:
-                    break
         else:
             for m in data:
                 try:
                     markets.append(PolymarketMarket.from_api_response(m))
-                except:
+                except Exception as e:
+                    print(f"Warning: Failed to parse market: {e}")
                     continue
+        
         return markets[:limit]
     except Exception as e:
         print(f"Error fetching markets: {e}")
         return []
 
-def fetch_price_history(token_id: str, interval: str = "1w") -> List[dict]:
-    import requests
-    try:
-        data = requests.get("https://clob.polymarket.com/prices-history", 
-                          params={"market": str(token_id).strip('[]"\''), "interval": interval, "fidelity": 60},
-                          headers={'Accept': 'application/json', 'Accept-Encoding': 'gzip, deflate',
-                                 'User-Agent': 'PolymarketGreeksCalculator/1.0'}, timeout=10).json()
-        return data.get("history", [])
-    except:
-        return []
+
+# =============================================================================
+# MAIN
+# =============================================================================
 
 def main():
     import argparse
-    parser = argparse.ArgumentParser(description="Polymarket Greeks Calculator - Live Data")
-    parser.add_argument("-n", "--num-markets", type=int, default=10, help="Number of markets to fetch")
-    parser.add_argument("-s", "--search", type=str, default=None, help="Search term to filter markets")
+    
+    parser = argparse.ArgumentParser(
+        description="Polymarket Greeks Calculator - Live Data",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python polymarket_greeks.py -n 20                  # Top 20 markets
+  python polymarket_greeks.py -s "bitcoin"           # Bitcoin markets
+  python polymarket_greeks.py -s "silver" -n 15      # Top 15 silver markets
+  python polymarket_greeks.py -s "oil"               # Oil/crude markets
+  python polymarket_greeks.py -s "gold"              # Gold markets
+  python polymarket_greeks.py -s "ethereum"          # Ethereum markets
+
+Popular assets: bitcoin, ethereum, solana, gold, silver, oil
+        """
+    )
+    parser.add_argument("-n", "--num-markets", type=int, default=10, help="Number of markets")
+    parser.add_argument("-s", "--search", type=str, default=None, 
+                       help="Search term (e.g., bitcoin, gold, silver, oil, ethereum)")
+    parser.add_argument("--asset", type=str, default=None, choices=['bitcoin', 'ethereum', 'solana', 'gold', 'silver', 'oil'],
+                       help="Quick search for popular assets")
     args = parser.parse_args()
     
-    print("=" * 70)
+    # Use --asset flag if provided
+    if args.asset:
+        args.search = args.asset
+    
+    print("=" * 85)
     print("POLYMARKET GREEKS CALCULATOR - LIVE DATA")
-    print("=" * 70)
+    print("=" * 85)
+    print("\nGreeks are NORMALIZED for practical interpretation:")
+    print("  Delta: $ change per 1% move in underlying (or 1pp probability)")
+    print("  Gamma: Delta change per 1% move")
+    print("  Vega:  $ change per 1pp vol increase")
+    print("  Theta: $ change per day")
     
     if args.search:
         print(f"\nSearching for markets matching: '{args.search}'...")
@@ -338,20 +525,25 @@ def main():
     print(f"Found {len(markets)} markets\n")
     
     # Fetch Yahoo Finance data
+    underlying_vols = {}
+    underlying_prices = {}
+    
     try:
         import yfinance
         print("Fetching underlying asset data from Yahoo Finance...")
-        underlying_vols, underlying_prices, seen = {}, {}, set()
+        seen_tickers = set()
         
         for m in markets:
             ticker = infer_ticker_from_question(m.question)
-            if ticker and ticker not in seen:
-                seen.add(ticker)
-                print(f"  {ticker}: ", end='')
+            if ticker and ticker not in seen_tickers:
+                seen_tickers.add(ticker)
+                print(f"  {ticker}: ", end='', flush=True)
+                
                 price = fetch_yahoo_current_price(ticker)
                 if price:
                     underlying_prices[ticker] = price
                     print(f"${price:,.2f}", end='')
+                
                 prices = fetch_yahoo_prices(ticker)
                 if prices:
                     vol = calculate_realized_vol(prices)
@@ -361,62 +553,99 @@ def main():
                             underlying_vols[market.id] = vol
                 else:
                     print()
+        print()
     except ImportError:
-        print("yfinance not installed - using probability models only")
-        underlying_vols, underlying_prices = {}, {}
+        print("Note: Install yfinance for barrier option Greeks (pip install yfinance)\n")
     
-    # Display markets
-    print(f"\n{'#':<3} {'Market':<40} {'YES':>7} {'Days':>5} {'Model':>7} {'Delta':>8} {'Gamma':>10}")
-    print("-" * 85)
+    # Display all markets
+    print(f"{'#':<3} {'Market':<44} {'YES':>6} {'Days':>5} {'Model':>7} {'Delta':>9} {'Gamma':>11}")
+    print("-" * 92)
+    
+    bs = BlackScholesDigital()
+    bridge = BrownianBridge()
+    barrier = BarrierOptionGreeks()
     
     valid_markets = []
+    market_greeks = {}
+    
     for m in markets:
         tau_days = (m.end_date - datetime.now(timezone.utc)).total_seconds() / 86400
         if tau_days <= 0:
             continue
+        
         valid_markets.append(m)
+        tau_years = tau_days / 365.25
+        sigma = underlying_vols.get(m.id, 0.5)
         
-        sigma = underlying_vols.get(m.id, 0.8)
+        # Try barrier model first
         ticker = infer_ticker_from_question(m.question)
         price = underlying_prices.get(ticker) if ticker else None
         strike = extract_strike_from_question(m.question)
         
         if price and strike:
-            greeks = BarrierOptionGreeks().greeks_from_market(m, price, sigma, True)
-            model = 'Barrier'
+            greeks = barrier.greeks_from_market(m, price, sigma, is_yes=True)
+            model_name = 'Barrier'
         else:
-            model = 'Bridge' if tau_days > 7 else 'BS'
-            greeks = (BrownianBridge().greeks(m.yes_price, sigma, tau_days/365, 30/365, True) if model == 'Bridge'
-                     else BlackScholesDigital().greeks(m.yes_price, sigma, tau_days/365, True))
+            # Fall back to probability models
+            if tau_days > 7:
+                greeks = bridge.greeks(m.yes_price, sigma, tau_years, 30/365, is_yes=True)
+                model_name = 'Bridge'
+            else:
+                greeks = bs.greeks(m.yes_price, sigma, tau_years, is_yes=True)
+                model_name = 'BS'
         
-        q = m.question[:37] + "..." if len(m.question) > 40 else m.question
-        print(f"{len(valid_markets):<3} {q:<40} {m.yes_price*100:>6.1f}% {tau_days:>4.0f}d {model:>7} "
-              f"{greeks.delta:>+8.4f} {greeks.gamma:>+10.6f}")
-    
-    # Detailed breakdown
-    print("\n" + "=" * 70)
-    print("DETAILED GREEKS")
-    print("=" * 70)
-    
-    for m in valid_markets[:5]:  # Show first 5 in detail
-        tau = (m.end_date - datetime.now(timezone.utc)).total_seconds() / (365.25 * 24 * 3600)
-        sigma = underlying_vols.get(m.id, 0.8)
-        ticker = infer_ticker_from_question(m.question)
-        price = underlying_prices.get(ticker) if ticker else None
-        strike = extract_strike_from_question(m.question)
+        if greeks is None:
+            greeks = bridge.greeks(m.yes_price, sigma, tau_years, 30/365, is_yes=True)
+            model_name = 'Bridge'
         
-        print(f"\n📊 {m.question}")
-        print(f"   YES: {m.yes_price*100:.1f}% | Expires in {tau*365:.0f} days")
+        market_greeks[m.id] = (greeks, model_name, price, strike, sigma)
+        
+        q = m.question[:41] + "..." if len(m.question) > 44 else m.question
+        print(f"{len(valid_markets):<3} {q:<44} {m.yes_price*100:>5.1f}% {tau_days:>4.0f}d {model_name:>7} "
+              f"{greeks.delta:>+9.5f} {greeks.gamma:>+11.7f}")
+    
+    # Detailed breakdown for ALL markets
+    print("\n" + "=" * 85)
+    print("DETAILED GREEKS FOR ALL MARKETS")
+    print("=" * 85)
+    
+    for i, m in enumerate(valid_markets):
+        tau_years = (m.end_date - datetime.now(timezone.utc)).total_seconds() / (365.25 * 24 * 3600)
+        tau_days = tau_years * 365.25
+        greeks, model_name, price, strike, sigma = market_greeks[m.id]
+        
+        print(f"\n{i+1}. {m.question}")
+        print(f"   YES: {m.yes_price*100:.1f}% | NO: {m.no_price*100:.1f}% | Expires: {tau_days:.0f} days | Model: {model_name}")
         
         if price and strike:
-            g = BarrierOptionGreeks().greeks_from_market(m, price, sigma, True)
-            print(f"   Strike: ${strike:,.0f} | Current: ${price:,.2f} | Vol: {sigma*100:.0f}%")
-            print(f"   Delta: {g.delta:.6f} | Gamma: {g.gamma:.8f} | Vega: {g.vega:.6f} | Theta: {g.theta:.8f}")
-        else:
-            bs_g = BlackScholesDigital().greeks(m.yes_price, sigma, tau, True)
-            br_g = BrownianBridge().greeks(m.yes_price, sigma, tau, 30/365, True)
-            print(f"   BS:     Δ={bs_g.delta:.4f}, Γ={bs_g.gamma:.4f}, V={bs_g.vega:.4f}, Θ={bs_g.theta:.6f}")
-            print(f"   Bridge: Δ={br_g.delta:.4f}, Γ={br_g.gamma:.4f}, V={br_g.vega:.4f}, Θ={br_g.theta:.6f}")
+            moneyness = (price - strike) / strike * 100
+            itm_otm = "ITM" if (moneyness > 0 and infer_option_type(m.question) == 'call') or \
+                               (moneyness < 0 and infer_option_type(m.question) == 'put') else "OTM"
+            print(f"   Strike: ${strike:,.0f} | Spot: ${price:,.2f} | {itm_otm} by {abs(moneyness):.1f}% | Vol: {sigma*100:.0f}%")
+        
+        print(f"   Delta: {greeks.delta:+.6f} | Gamma: {greeks.gamma:+.8f} | Vega: {greeks.vega:+.6f} | Theta: {greeks.theta:+.8f}")
+        
+        # Interpretation
+        if abs(greeks.delta) > 0.0001:
+            direction = "up" if greeks.delta > 0 else "down"
+            print(f"   → Per 1 share: ${abs(greeks.delta):.4f} gain per 1% {direction} move in underlying")
+    
+    # Summary statistics
+    print("\n" + "=" * 85)
+    print("PORTFOLIO SUMMARY (if holding 1 YES share of each)")
+    print("=" * 85)
+    
+    total_delta = sum(g[0].delta for g in market_greeks.values())
+    total_gamma = sum(g[0].gamma for g in market_greeks.values())
+    total_vega = sum(g[0].vega for g in market_greeks.values())
+    total_theta = sum(g[0].theta for g in market_greeks.values())
+    
+    print(f"\nAggregate Greeks (for 1 share each):")
+    print(f"  Total Delta: {total_delta:+.6f}  (net $ exposure per 1% move)")
+    print(f"  Total Gamma: {total_gamma:+.8f}  (delta sensitivity)")
+    print(f"  Total Vega:  {total_vega:+.6f}  (vol sensitivity)")
+    print(f"  Total Theta: {total_theta:+.8f}  (daily decay)")
+
 
 if __name__ == "__main__":
     main()
