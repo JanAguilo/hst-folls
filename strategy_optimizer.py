@@ -132,9 +132,10 @@ def optimize_strategy(
         seed=42
     )
     
-    # Calculate max position per market (20% of budget or $1000, whichever is smaller)
-    max_position_per_market = min(max_budget * 0.2, 1000.0)
-    print(f"[OPTIMIZER] Max position per market: ${max_position_per_market:.2f}")
+    # Calculate max position per market - be generous to allow hitting targets
+    # Use 40% of budget or $2000, whichever is larger (more flexible)
+    max_position_per_market = max(max_budget * 0.4, min(2000.0, max_budget))
+    print(f"[OPTIMIZER] Max position per market: ${max_position_per_market:.2f} (budget: ${max_budget:.2f})")
     print(f"[OPTIMIZER] Target Greeks: {target_greeks}")
     
     # Calculate adaptive weights to balance different magnitude Greeks
@@ -156,18 +157,19 @@ def optimize_strategy(
     
     print(f"[OPTIMIZER] Weights: {weights}")
     
-    # Run optimization with balanced parameters for accuracy + speed
+    # Run optimization with MAXIMUM ACCURACY priority
+    # L1 and concentration penalties are minimized to let optimizer focus on targets
     print(f"[OPTIMIZER] Starting scipy optimization...")
     result = agent.optimize(
         target_greeks=target_greeks,
         weights=weights,  # Use adaptive weights
         max_total_investment=max_budget,
         max_position_per_market=max_position_per_market,
-        min_position_size=0.5,  # Lower minimum for more flexibility
-        l1_penalty=0.002,  # Balanced - not too aggressive
-        concentration_penalty=0.0005,
-        max_iterations=1000,  # Balanced iterations for accuracy
-        ftol=1e-8,  # Tighter tolerance for better accuracy
+        min_position_size=0.1,  # Very low for maximum flexibility
+        l1_penalty=0.0001,  # Nearly zero - don't penalize position size
+        concentration_penalty=0.0001,  # Nearly zero - allow any concentration
+        max_iterations=1500,  # More iterations for convergence
+        ftol=1e-9,  # Very tight tolerance
         deterministic=True
     )
     

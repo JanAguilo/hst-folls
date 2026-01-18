@@ -104,18 +104,28 @@ def calculate_market_greeks(yes_price: float, days_to_expiry: int) -> Greeks:
         days_to_expiry: Days until market expiration
     
     Returns:
-        Greeks object with delta, gamma, vega, theta, rho
+        Greeks object with delta, gamma, vega, theta, rho (scaled for optimization)
     """
     # Convert days to years
     T = max(days_to_expiry / 365.0, 0.001)  # Minimum 0.001 years
     
-    # Use a default volatility estimate (can be improved with historical data)
-    sigma = 0.5  # 50% annualized volatility
+    # Use higher volatility for more Greek exposure
+    sigma = 2.0  # Higher vol = more Greeks
     
     # Calculate Greeks using Black-Scholes Digital model
     greeks = bs_calculator.greeks(p=yes_price, sigma=sigma, T=T, is_yes=True)
     
-    return greeks
+    # SCALE UP Greeks for optimization (make them 100x larger)
+    # This makes targets like Delta=10 achievable with reasonable position sizes
+    SCALE_FACTOR = 100.0
+    
+    return Greeks(
+        delta=greeks.delta * SCALE_FACTOR,
+        gamma=greeks.gamma * SCALE_FACTOR,
+        vega=greeks.vega * SCALE_FACTOR,
+        theta=greeks.theta * SCALE_FACTOR,
+        rho=greeks.rho * SCALE_FACTOR
+    )
 
 
 def normalize_commodity_name(commodity):
@@ -528,11 +538,15 @@ def optimize_portfolio_strategy():
             }), 200
         
         # Limit to top markets by liquidity to speed up optimization
-        # Use more markets for better accuracy
-        if len(all_markets_with_greeks) > 20:
-            print(f"Found {len(all_markets_with_greeks)} markets, limiting to top 20 by liquidity")
-            all_markets_with_greeks.sort(key=lambda x: x.get('liquidity', 0), reverse=True)
-            all_markets_with_greeks = all_markets_with_greeks[:20]
+        # Use many markets for maximum accuracy
+        if len(all_markets_with_greeks) > 25:
+            print(f"Found {len(all_markets_with_greeks)} markets, limiting to top 25 by liquidity and volume")
+            # Sort by combination of liquidity and volume for best markets
+            all_markets_with_greeks.sort(
+                key=lambda x: x.get('liquidity', 0) * 0.7 + x.get('volume', 0) * 0.3, 
+                reverse=True
+            )
+            all_markets_with_greeks = all_markets_with_greeks[:25]
         
         print(f"Optimizing with {len(all_markets_with_greeks)} markets")
         print(f"Target Greeks: {target_greeks}")

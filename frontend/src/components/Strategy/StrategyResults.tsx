@@ -197,16 +197,34 @@ export const StrategyResults: React.FC<StrategyResultsProps> = ({
                   </div>
                 </div>
                 
-                <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-800">
-                  <div className="flex gap-4 text-xs">
-                    <span className="text-slate-400">
+                <div className="mt-3 pt-3 border-t border-slate-800">
+                  <div className="bg-slate-800/50 p-3 rounded-lg mb-2">
+                    <div className="text-xs font-semibold text-slate-300 mb-1">📋 Trading Instructions:</div>
+                    <div className="text-sm text-white">
+                      {position.action === 'BUY YES' ? (
+                        <>
+                          Buy <span className="font-bold text-success-400">{Math.abs(position.quantity).toFixed(2)} shares</span> of the <span className="font-bold">YES</span> outcome
+                          {' '}at ${position.yes_price.toFixed(3)} per share
+                          {' '}= <span className="font-bold text-success-400">${position.position_value.toFixed(2)}</span> total
+                        </>
+                      ) : (
+                        <>
+                          Buy <span className="font-bold text-danger-400">{Math.abs(position.quantity).toFixed(2)} shares</span> of the <span className="font-bold">NO</span> outcome
+                          {' '}at ${position.no_price.toFixed(3)} per share
+                          {' '}= <span className="font-bold text-danger-400">${position.position_value.toFixed(2)}</span> total
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-4 text-xs text-slate-400">
+                    <span>
                       Quantity: <span className="text-white font-semibold">{Math.abs(position.quantity).toFixed(2)}</span>
                     </span>
-                    <span className="text-slate-400">
-                      YES: <span className="text-white font-semibold">${position.yes_price.toFixed(3)}</span>
+                    <span>
+                      YES Price: <span className="text-white font-semibold">${position.yes_price.toFixed(3)}</span>
                     </span>
-                    <span className="text-slate-400">
-                      NO: <span className="text-white font-semibold">${position.no_price.toFixed(3)}</span>
+                    <span>
+                      NO Price: <span className="text-white font-semibold">${position.no_price.toFixed(3)}</span>
                     </span>
                   </div>
                 </div>
