@@ -36,6 +36,12 @@ export interface PolymarketMarket {
   liquidity: number;
   relatedCommodity?: string;
   relatedCommodities?: string[];
+  // Greeks (if calculated)
+  delta?: number;
+  gamma?: number;
+  vega?: number;
+  theta?: number;
+  expiryDays?: number;
 }
 
 export interface SimulatedPosition {
@@ -72,4 +78,29 @@ export interface CommoditySelection {
 export interface CommodityWithQuantity {
   commodity: string;
   quantity: number;
+}
+
+export interface OptimalPosition {
+  market_id: string;
+  market_title: string;
+  action: string;
+  quantity: number;
+  position_value: number;
+  yes_price: number;
+  no_price: number;
+  greek_contributions: Greeks;
+}
+
+export interface StrategyResult {
+  success: boolean;
+  optimal_positions: OptimalPosition[];
+  achieved_greeks: Greeks;
+  target_greeks: Greeks;
+  deviations: Record<string, number>;
+  total_investment: number;
+  num_positions: number;
+  optimization_time_ms: number;
+  metrics: Record<string, any>;
+  initial_greeks?: Greeks;
+  greek_changes_from_initial?: Greeks;
 }

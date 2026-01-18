@@ -2,6 +2,14 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import json
 import os
+import sys
+from datetime import datetime, timezone
+
+# Add parent directory to path to import portfolio_to_greeks and strategy_optimizer
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from portfolio_to_greeks import calculate_portfolio_greeks
+from strategy_optimizer import optimize_strategy
+from polymarket_greeks import PolymarketMarket, Greeks, BlackScholesDigital, BrownianBridge
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend requests
@@ -10,6 +18,10 @@ CORS(app)  # Enable CORS for frontend requests
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 COMMODITY_MARKETS_PATH = os.path.join(BASE_DIR, 'commodity_markets.json')
 COMMODITY_MAPPING_PATH = os.path.join(BASE_DIR, 'commodity_to_main_asset_mapping.json')
+
+# Initialize Greeks calculators
+bs_calculator = BlackScholesDigital()
+bridge_calculator = BrownianBridge()
 
 # Load markets data
 with open(COMMODITY_MARKETS_PATH, 'r', encoding='utf-8') as f:
@@ -46,6 +58,29 @@ COMMODITY_ALIASES = {
     'usd index (dx-y.nyb)': 'usd index',
     'dx-y.nyb': 'usd index',
 }
+
+
+def calculate_market_greeks(yes_price: float, days_to_expiry: int) -> Greeks:
+    """
+    Calculate Greeks for a Polymarket market using simplified Black-Scholes Digital model.
+    
+    Args:
+        yes_price: Price of YES outcome (0-1)
+        days_to_expiry: Days until market expiration
+    
+    Returns:
+        Greeks object with delta, gamma, vega, theta, rho
+    """
+    # Convert days to years
+    T = max(days_to_expiry / 365.0, 0.001)  # Minimum 0.001 years
+    
+    # Use a default volatility estimate (can be improved with historical data)
+    sigma = 0.5  # 50% annualized volatility
+    
+    # Calculate Greeks using Black-Scholes Digital model
+    greeks = bs_calculator.greeks(p=yes_price, sigma=sigma, T=T, is_yes=True)
+    
+    return greeks
 
 
 def normalize_commodity_name(commodity):
@@ -266,6 +301,216 @@ def search_markets():
         return jsonify({'error': f'Internal server error: {str(e)}'}), 500
 
 
+@app.route('/api/portfolio/initial-greeks', methods=['POST'])
+def calculate_initial_greeks():
+    """
+    Calculate initial portfolio Greeks from commodities with quantities.
+    
+    Request body:
+    {
+        "commodities": [
+            {"commodity": "Gold (GC=F)", "quantity": 10000},
+            {"commodity": "Silver (SI=F)", "quantity": 5000}
+        ]
+    }
+    
+    Response:
+    {
+        "greeks": {
+            "delta": 258.5919,
+            "gamma": 0.0,
+            "vega": 0.0,
+            "theta": 0.0,
+            "rho": 0.0
+        }
+    }
+    """
+    try:
+        data = request.get_json()
+        commodities = data.get('commodities', [])
+        
+        if not commodities:
+            return jsonify({'error': 'Commodities array is required'}), 400
+        
+        # Validate input format
+        if not isinstance(commodities, list):
+            return jsonify({'error': 'Commodities must be an array'}), 400
+        
+        for item in commodities:
+            if not isinstance(item, dict) or 'commodity' not in item or 'quantity' not in item:
+                return jsonify({'error': 'Each commodity must have "commodity" and "quantity" fields'}), 400
+        
+        # Calculate Greeks using portfolio_to_greeks
+        greeks = calculate_portfolio_greeks(commodities)
+        
+        return jsonify({
+            'greeks': greeks
+        }), 200
+        
+    except Exception as e:
+        print(f"Error in calculate_initial_greeks: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Internal server error: {str(e)}'}), 500
+
+
+@app.route('/api/strategy/optimize', methods=['POST'])
+def optimize_portfolio_strategy():
+    """
+    Optimize portfolio strategy using AI to achieve target Greeks.
+    
+    Request body:
+    {
+        "commodities": [
+            {"commodity": "Gold (GC=F)", "quantity": 10000},
+            ...
+        ],
+        "target_greeks": {
+            "delta": 300.0,
+            "gamma": 0.5,
+            "vega": 1.0,
+            "theta": -0.5
+        },
+        "max_budget": 5000.0,
+        "selected_commodities": ["Gold (GC=F)", "Silver (SI=F)"]
+    }
+    
+    Response:
+    {
+        "success": bool,
+        "optimal_positions": [...],
+        "achieved_greeks": {...},
+        "target_greeks": {...},
+        "deviations": {...},
+        "total_investment": float,
+        "num_positions": int,
+        "initial_greeks": {...},
+        "greek_changes_from_initial": {...}
+    }
+    """
+    try:
+        data = request.get_json()
+        commodities = data.get('commodities', [])
+        target_greeks = data.get('target_greeks', {})
+        max_budget = float(data.get('max_budget', 10000.0))
+        selected_commodities = data.get('selected_commodities', [])
+        
+        if not target_greeks:
+            return jsonify({'error': 'Target Greeks are required'}), 400
+        
+        if max_budget <= 0:
+            return jsonify({'error': 'Max budget must be positive'}), 400
+        
+        # Calculate initial portfolio Greeks
+        initial_greeks = None
+        if commodities:
+            try:
+                initial_greeks = calculate_portfolio_greeks(commodities)
+            except Exception as e:
+                print(f"Warning: Could not calculate initial Greeks: {e}")
+        
+        # Get markets for selected commodities
+        all_markets_with_greeks = []
+        
+        for commodity in selected_commodities:
+            # Search for markets related to this commodity
+            direct_results = find_markets_by_commodity(commodity)
+            
+            # Process each event and its markets
+            for event in direct_results:
+                for market in event.get('markets', []):
+                    try:
+                        # Calculate Greeks for this market
+                        yes_price = market.get('yesPrice', 0.5)
+                        no_price = market.get('noPrice', 0.5)
+                        
+                        # Calculate days to expiry
+                        end_date_str = market.get('endDate')
+                        if end_date_str:
+                            try:
+                                if isinstance(end_date_str, str):
+                                    if end_date_str.endswith('Z'):
+                                        end_date_str = end_date_str[:-1] + '+00:00'
+                                    from datetime import datetime
+                                    end_date = datetime.fromisoformat(end_date_str)
+                                    days_to_expiry = max(1, (end_date - datetime.now(end_date.tzinfo)).days)
+                                else:
+                                    days_to_expiry = 30
+                            except:
+                                days_to_expiry = 30
+                        else:
+                            days_to_expiry = 30
+                        
+                        # Create PolymarketMarket object for Greeks calculation
+                        pm_market = PolymarketMarket(
+                            id=market.get('id', ''),
+                            question=market.get('question', ''),
+                            condition_id='',
+                            slug=market.get('slug', ''),
+                            end_date=None,  # Not needed for Greeks calc
+                            outcome_prices=[yes_price, no_price],
+                            clob_token_ids=[],
+                            outcomes=['Yes', 'No'],
+                            volume=float(market.get('volume', 0)),
+                            liquidity=float(market.get('liquidity', 0)),
+                            related_commodity=event.get('relatedCommodity')
+                        )
+                        
+                        # Calculate Greeks
+                        greeks = calculate_market_greeks(yes_price, days_to_expiry)
+                        
+                        # Add market with Greeks to list
+                        market_with_greeks = {
+                            'id': market.get('id'),
+                            'question': market.get('question'),
+                            'yes_price': yes_price,
+                            'no_price': no_price,
+                            'expiry_days': days_to_expiry,
+                            'delta': greeks.delta,
+                            'gamma': greeks.gamma,
+                            'vega': greeks.vega,
+                            'theta': greeks.theta,
+                            'liquidity': float(market.get('liquidity', 0)),
+                            'volume': float(market.get('volume', 0)),
+                            'relatedCommodity': event.get('relatedCommodity'),
+                            'eventTitle': event.get('title'),
+                            'slug': market.get('slug')
+                        }
+                        
+                        all_markets_with_greeks.append(market_with_greeks)
+                        
+                    except Exception as e:
+                        print(f"Error calculating Greeks for market {market.get('id')}: {e}")
+                        continue
+        
+        if not all_markets_with_greeks:
+            return jsonify({
+                'success': False,
+                'error': 'No markets found for optimization',
+                'optimal_positions': [],
+                'achieved_greeks': {},
+                'target_greeks': target_greeks
+            }), 200
+        
+        print(f"Found {len(all_markets_with_greeks)} markets for optimization")
+        
+        # Run optimization
+        result = optimize_strategy(
+            markets_with_greeks=all_markets_with_greeks,
+            target_greeks=target_greeks,
+            max_budget=max_budget,
+            initial_greeks=initial_greeks
+        )
+        
+        return jsonify(result), 200
+        
+    except Exception as e:
+        print(f"Error in optimize_portfolio_strategy: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Internal server error: {str(e)}'}), 500
+
+
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
@@ -283,6 +528,8 @@ if __name__ == '__main__':
     print("\n[READY] Server ready on http://localhost:5000")
     print("[API] API Endpoints:")
     print("   - POST /api/search-markets")
+    print("   - POST /api/portfolio/initial-greeks")
+    print("   - POST /api/strategy/optimize")
     print("   - GET  /api/health\n")
     
     app.run(debug=True, port=5000, host='0.0.0.0')

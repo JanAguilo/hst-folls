@@ -65,19 +65,47 @@ export const MarketCard: React.FC<MarketCardProps> = ({
         </div>
       </div>
 
-      <div className="flex items-center justify-between text-sm text-slate-400 mb-4">
-        <div className="flex items-center gap-1">
-          <Calendar className="w-4 h-4" />
-          <span>{daysUntilEnd}d left</span>
+      <div className="space-y-3 mb-4">
+        {/* Market Stats */}
+        <div className="flex items-center justify-between text-sm text-slate-400">
+          <div className="flex items-center gap-1">
+            <Calendar className="w-4 h-4" />
+            <span>{market.expiryDays !== undefined ? `${market.expiryDays}d` : `${daysUntilEnd}d`} left</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <DollarSign className="w-4 h-4" />
+            <span>${(market.volume / 1000).toFixed(1)}k vol</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Activity className="w-4 h-4" />
+            <span>${(market.liquidity / 1000).toFixed(1)}k liq</span>
+          </div>
         </div>
-        <div className="flex items-center gap-1">
-          <DollarSign className="w-4 h-4" />
-          <span>${(market.volume / 1000).toFixed(0)}k vol</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <Activity className="w-4 h-4" />
-          <span>${(market.liquidity / 1000).toFixed(0)}k liq</span>
-        </div>
+
+        {/* Greeks Display (if available) */}
+        {market.delta !== undefined && (
+          <div className="bg-slate-900/50 rounded-lg p-3 border border-primary-500/20">
+            <div className="text-xs text-slate-400 mb-2 font-semibold">Greeks (per share)</div>
+            <div className="grid grid-cols-4 gap-2 text-xs">
+              <div>
+                <div className="text-slate-500">Δ</div>
+                <div className="font-semibold text-white">{market.delta.toFixed(4)}</div>
+              </div>
+              <div>
+                <div className="text-slate-500">Γ</div>
+                <div className="font-semibold text-white">{market.gamma?.toFixed(6) || '0'}</div>
+              </div>
+              <div>
+                <div className="text-slate-500">V</div>
+                <div className="font-semibold text-white">{market.vega?.toFixed(4) || '0'}</div>
+              </div>
+              <div>
+                <div className="text-slate-500">Θ</div>
+                <div className="font-semibold text-white">{market.theta?.toFixed(6) || '0'}</div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {!showSizeInput ? (

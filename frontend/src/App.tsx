@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, TrendingUp, Loader } from 'lucide-react';
-import type { Greeks, HypotheticalPosition, PolymarketMarket, CommodityWithQuantity } from './types';
+import { Activity, TrendingUp, Loader, Sparkles } from 'lucide-react';
+import type { Greeks, HypotheticalPosition, PolymarketMarket, CommodityWithQuantity, StrategyResult, OptimalPosition } from './types';
 import { api } from './services/api';
 import { CommoditySelector } from './components/Commodity/CommoditySelector';
 import { GreeksDisplay } from './components/Greeks/GreeksDisplay';
 import { MarketSearch } from './components/Markets/MarketSearch';
+import { AIStrategyModal } from './components/Strategy/AIStrategyModal';
+import { StrategyResults } from './components/Strategy/StrategyResults';
 
 type Step = 'select-commodities' | 'select-markets';
 
@@ -12,18 +14,40 @@ function App() {
   const [currentStep, setCurrentStep] = useState<Step>('select-commodities');
   const [selectedCommodities, setSelectedCommodities] = useState<CommodityWithQuantity[]>([]);
   const [hypotheticalPositions, setHypotheticalPositions] = useState<HypotheticalPosition[]>([]);
+  const [initialGreeks, setInitialGreeks] = useState<Greeks | null>(null);
   const [greeks, setGreeks] = useState<Greeks | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
+  
+  // AI Strategy state
+  const [showStrategyModal, setShowStrategyModal] = useState(false);
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [strategyResult, setStrategyResult] = useState<StrategyResult | null>(null);
+
+  // Calculate initial portfolio Greeks whenever commodities/quantities change
+  useEffect(() => {
+    if (currentStep === 'select-markets' && selectedCommodities.length > 0) {
+      const hasQuantities = selectedCommodities.some(c => c.quantity > 0);
+      if (hasQuantities) {
+        calculateInitialGreeks();
+      } else {
+        setInitialGreeks(null);
+      }
+    } else {
+      setInitialGreeks(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCommodities, currentStep]);
 
   // Calculate Greeks whenever hypothetical positions change
   useEffect(() => {
     if (hypotheticalPositions.length > 0) {
       calculateGreeks();
     } else {
-      setGreeks(null);
+      // Reset to initial Greeks when no hypothetical positions
+      setGreeks(initialGreeks);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hypotheticalPositions]);
+  }, [hypotheticalPositions, initialGreeks]);
 
   const handleAddCommodity = (commodity: string) => {
     if (!selectedCommodities.some(c => c.commodity === commodity)) {
@@ -56,9 +80,26 @@ function App() {
     setCurrentStep('select-commodities');
   };
 
+  const calculateInitialGreeks = async () => {
+    setIsCalculating(true);
+    try {
+      const calculatedGreeks = await api.calculateInitialPortfolioGreeks(selectedCommodities);
+      setInitialGreeks(calculatedGreeks);
+      // Also set as current Greeks if no hypothetical positions
+      if (hypotheticalPositions.length === 0) {
+        setGreeks(calculatedGreeks);
+      }
+    } catch (error) {
+      console.error('Error calculating initial Greeks:', error);
+    } finally {
+      setIsCalculating(false);
+    }
+  };
+
   const calculateGreeks = async () => {
     if (hypotheticalPositions.length === 0) {
-      setGreeks(null);
+      // Reset to initial Greeks when no hypothetical positions
+      setGreeks(initialGreeks);
       return;
     }
 
@@ -126,6 +167,37 @@ function App() {
         )
       );
     }
+  };
+
+  const handleOptimizeStrategy = async (targetGreeks: Greeks, maxBudget: number) => {
+    setIsOptimizing(true);
+    try {
+      const result = await api.optimizeStrategy(
+        selectedCommodities,
+        targetGreeks,
+        maxBudget,
+        commodityNames
+      );
+      setStrategyResult(result);
+      setShowStrategyModal(false);
+    } catch (error) {
+      console.error('Error optimizing strategy:', error);
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
+
+  const handleApplyOptimalPositions = (positions: OptimalPosition[]) => {
+    // Convert optimal positions to hypothetical positions
+    // This would require having the full market data, which we'd need to fetch or store
+    console.log('Applying positions:', positions);
+    // For now, just close the results
+    setStrategyResult(null);
+    // TODO: Implement actual position application
+  };
+
+  const handleCloseStrategyResults = () => {
+    setStrategyResult(null);
   };
 
   return (
@@ -228,6 +300,16 @@ function App() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
              {/* Left Column: Commodities & Markets */}
              <div className="space-y-6">
+               {/* AI Strategy Button */}
+               <button
+                 onClick={() => setShowStrategyModal(true)}
+                 disabled={!initialGreeks || selectedCommodities.length === 0}
+                 className="w-full px-6 py-4 bg-gradient-to-r from-primary-600 to-blue-600 hover:from-primary-500 hover:to-blue-500 disabled:from-slate-700 disabled:to-slate-600 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-lg hover:shadow-primary-500/50"
+               >
+                 <Sparkles className="w-6 h-6" />
+                 <span>Build Your Strategy with AI</span>
+               </button>
+
                {/* Display Selected Commodities with Quantities */}
                <div className="card bg-gradient-to-br from-primary-500/10 to-blue-500/10 border-primary-500/30">
                  <h3 className="text-xl font-bold mb-4">Your Portfolio Values (USD)</h3>
@@ -268,50 +350,78 @@ function App() {
                />
              </div>
 
-            {/* Right Column: Greeks Visualization */}
-            <div className="space-y-6 sticky top-24 h-fit">
-              {hypotheticalPositions.length > 0 ? (
-                <>
-                  {greeks ? (
-                    <div className="animate-fade-in">
-                      <GreeksDisplay greeks={greeks} title="Real-Time Portfolio Greeks" />
-                      
-                      <div className="card mt-6 bg-gradient-to-br from-primary-500/10 to-blue-500/10 border-primary-500/30">
-                        <h3 className="text-xl font-bold mb-3">Portfolio Analysis</h3>
-                        <div className="space-y-2 text-slate-300">
-                          <p>
-                            <span className="font-semibold text-white">Risk Exposure:</span>{' '}
-                            {Math.abs(greeks.delta) < 20 ? 'Low' : Math.abs(greeks.delta) < 50 ? 'Moderate' : 'High'}
-                          </p>
-                          <p>
-                            <span className="font-semibold text-white">Delta Direction:</span>{' '}
-                            {greeks.delta > 0 ? 'Bullish (increases with price increases)' : 'Bearish (increases with price decreases)'}
-                          </p>
-                          <p className="text-sm text-slate-400 mt-4">
-                            💡 These are hypothetical positions. Adjust sizes and sides to optimize your risk profile before executing real trades.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="card text-center py-12 bg-slate-800/30">
-                      <Loader className="w-8 h-8 animate-spin text-primary-400 mx-auto mb-4" />
-                      <p className="text-slate-400">Calculating Greeks...</p>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="card text-center py-12 bg-slate-800/30 border-dashed">
-                  <TrendingUp className="w-16 h-16 text-slate-600 mx-auto mb-4" />
-                  <h3 className="text-xl font-bold text-slate-400 mb-2">
-                    No Positions Selected Yet
-                  </h3>
-                  <p className="text-slate-500">
-                    Select markets from the left to see real-time Greeks here
-                  </p>
-                </div>
-              )}
-            </div>
+             {/* Right Column: Greeks Visualization or Strategy Results */}
+             <div className="space-y-6 sticky top-24 h-fit">
+               {strategyResult ? (
+                 <StrategyResults
+                   result={strategyResult}
+                   onApplyPositions={handleApplyOptimalPositions}
+                   onClose={handleCloseStrategyResults}
+                 />
+               ) : isCalculating ? (
+                 <div className="card text-center py-12 bg-slate-800/30">
+                   <Loader className="w-8 h-8 animate-spin text-primary-400 mx-auto mb-4" />
+                   <p className="text-slate-400">Calculating Greeks...</p>
+                 </div>
+               ) : greeks ? (
+                 <div className="animate-fade-in">
+                   <GreeksDisplay 
+                     greeks={greeks} 
+                     title={hypotheticalPositions.length > 0 ? "Portfolio Greeks (With Hypothetical Positions)" : "Initial Portfolio Greeks"} 
+                   />
+                   
+                   <div className="card mt-6 bg-gradient-to-br from-primary-500/10 to-blue-500/10 border-primary-500/30">
+                     <h3 className="text-xl font-bold mb-3">Portfolio Analysis</h3>
+                     <div className="space-y-2 text-slate-300">
+                       <p>
+                         <span className="font-semibold text-white">Risk Exposure:</span>{' '}
+                         {Math.abs(greeks.delta) < 20 ? 'Low' : Math.abs(greeks.delta) < 50 ? 'Moderate' : 'High'}
+                       </p>
+                       <p>
+                         <span className="font-semibold text-white">Delta Direction:</span>{' '}
+                         {greeks.delta > 0 ? 'Bullish (increases with price increases)' : greeks.delta < 0 ? 'Bearish (increases with price decreases)' : 'Neutral'}
+                       </p>
+                       {hypotheticalPositions.length > 0 && initialGreeks && (
+                         <div className="mt-4 pt-4 border-t border-primary-500/20">
+                           <p className="font-semibold text-white mb-2">Change from Initial Portfolio:</p>
+                           <p className="text-sm">
+                             <span className="font-semibold">Delta Change:</span>{' '}
+                             <span className={greeks.delta - initialGreeks.delta >= 0 ? 'text-danger-500' : 'text-success-500'}>
+                               {greeks.delta - initialGreeks.delta >= 0 ? '+' : ''}{(greeks.delta - initialGreeks.delta).toFixed(4)}
+                             </span>
+                           </p>
+                         </div>
+                       )}
+                       <p className="text-sm text-slate-400 mt-4">
+                         💡 {hypotheticalPositions.length > 0 
+                           ? 'These Greeks include your hypothetical positions. Adjust sizes and sides to optimize your risk profile before executing real trades.'
+                           : 'These are your initial portfolio Greeks based on your commodity positions. Add hypothetical positions to see how they would affect your risk profile.'}
+                       </p>
+                     </div>
+                   </div>
+                 </div>
+               ) : selectedCommodities.some(c => c.quantity > 0) ? (
+                 <div className="card text-center py-12 bg-slate-800/30 border-dashed">
+                   <TrendingUp className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+                   <h3 className="text-xl font-bold text-slate-400 mb-2">
+                     Calculating Initial Greeks...
+                   </h3>
+                   <p className="text-slate-500">
+                     Please wait while we calculate your portfolio Greeks
+                   </p>
+                 </div>
+               ) : (
+                 <div className="card text-center py-12 bg-slate-800/30 border-dashed">
+                   <TrendingUp className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+                   <h3 className="text-xl font-bold text-slate-400 mb-2">
+                     Enter Portfolio Quantities
+                   </h3>
+                   <p className="text-slate-500">
+                     Go back to enter quantities for your commodities to see initial portfolio Greeks
+                   </p>
+                 </div>
+               )}
+             </div>
           </div>
         )}
       </main>
@@ -322,6 +432,17 @@ function App() {
           <p>Han Solo Tech</p>
         </div>
       </footer>
+
+      {/* AI Strategy Modal */}
+      <AIStrategyModal
+        isOpen={showStrategyModal}
+        onClose={() => setShowStrategyModal(false)}
+        initialGreeks={initialGreeks}
+        selectedCommodities={selectedCommodities}
+        commodityNames={commodityNames}
+        onOptimize={handleOptimizeStrategy}
+        isOptimizing={isOptimizing}
+      />
     </div>
   );
 }

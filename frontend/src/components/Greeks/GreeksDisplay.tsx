@@ -27,7 +27,6 @@ export const GreeksDisplay: React.FC<GreeksDisplayProps> = ({ greeks, title = "P
     { name: 'Gamma', value: greeks.gamma, icon: Activity, color: 'text-purple-400', description: 'Δ per 1% move' },
     { name: 'Vega', value: greeks.vega, icon: Zap, color: 'text-yellow-400', description: '$ per 1% vol' },
     { name: 'Theta', value: greeks.theta, icon: Clock, color: 'text-red-400', description: '$ per day' },
-    { name: 'Rho', value: greeks.rho, icon: DollarSign, color: 'text-green-400', description: '$ per 1% rate' },
   ];
 
   // Prepare data for radar chart
@@ -48,7 +47,7 @@ export const GreeksDisplay: React.FC<GreeksDisplayProps> = ({ greeks, title = "P
       <h3 className="text-2xl font-bold">{title}</h3>
 
       {/* Greek Cards Grid */}
-      <div className="grid grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {greekItems.map((item) => {
           const Icon = item.icon;
           const isPositive = item.value >= 0;

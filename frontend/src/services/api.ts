@@ -1,4 +1,4 @@
-import type { Position, Greeks, PolymarketMarket, GreeksDelta } from '../types';
+import type { Position, Greeks, PolymarketMarket, GreeksDelta, CommodityWithQuantity, StrategyResult } from '../types';
 
 // Mock data for development
 const mockMarkets: PolymarketMarket[] = [
@@ -104,11 +104,17 @@ export const api = {
         question: market.question,
         slug: market.slug,
         endDate: market.endDate,
-        yesPrice: market.yesPrice || 0.5,
-        noPrice: market.noPrice || 0.5,
+        yesPrice: market.yes_price || market.yesPrice || 0.5,
+        noPrice: market.no_price || market.noPrice || 0.5,
         volume: market.volume || 0,
         liquidity: market.liquidity || 0,
-        relatedCommodity: market.relatedCommodity
+        relatedCommodity: market.relatedCommodity,
+        // Include Greeks if available
+        delta: market.delta,
+        gamma: market.gamma,
+        vega: market.vega,
+        theta: market.theta,
+        expiryDays: market.expiry_days
       });
 
       return {
@@ -129,6 +135,45 @@ export const api = {
         message: 'Error connecting to backend. Please ensure the backend server is running on port 5000.'
       };
     }
+  },
+
+  // Calculate initial portfolio Greeks from commodities with quantities
+  calculateInitialPortfolioGreeks: async (commoditiesWithQuantities: CommodityWithQuantity[]): Promise<Greeks> => {
+    try {
+      // Try to call backend API
+      const response = await fetch('http://localhost:5000/api/portfolio/initial-greeks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ commodities: commoditiesWithQuantities })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.greeks;
+      }
+    } catch (error) {
+      console.log('Backend not available, using mock calculation:', error);
+    }
+
+    // Fallback: Mock calculation based on portfolio value
+    // This is a simplified version - real calculation should use portfolio_to_greeks.py
+    await delay(300);
+    
+    const totalPortfolioValue = commoditiesWithQuantities.reduce((sum, c) => sum + (c.quantity || 0), 0);
+    
+    // Simplified mock calculation - in real app, this should call portfolio_to_greeks.py via backend
+    // For now, estimate delta as a small percentage of portfolio value
+    const estimatedDelta = totalPortfolioValue * 0.001; // Very rough estimate
+    
+    return {
+      delta: estimatedDelta,
+      gamma: 0.0,
+      vega: 0.0,
+      theta: 0.0,
+      rho: 0.0
+    };
   },
 
   // Greeks calculation
@@ -200,6 +245,52 @@ export const api = {
     // If not found in mock data, return null
     // The frontend should already have the market data from the search results
     return null;
+  },
+
+  // AI Strategy Optimization
+  optimizeStrategy: async (
+    commodities: CommodityWithQuantity[],
+    targetGreeks: Greeks,
+    maxBudget: number,
+    selectedCommodities: string[]
+  ): Promise<StrategyResult> => {
+    try {
+      const response = await fetch('http://localhost:5000/api/strategy/optimize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          commodities,
+          target_greeks: targetGreeks,
+          max_budget: maxBudget,
+          selected_commodities: selectedCommodities
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error optimizing strategy:', error);
+      // Return error result
+      return {
+        success: false,
+        optimal_positions: [],
+        achieved_greeks: { delta: 0, gamma: 0, vega: 0, theta: 0, rho: 0 },
+        target_greeks: targetGreeks,
+        deviations: {},
+        total_investment: 0,
+        num_positions: 0,
+        optimization_time_ms: 0,
+        metrics: {
+          error: 'Failed to connect to backend. Please ensure the backend server is running on port 5000.'
+        }
+      };
+    }
   }
 };
 
