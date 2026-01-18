@@ -43,9 +43,10 @@ class PolymarketMarket:
     outcomes: List[str]
     volume: float = 0.0
     liquidity: float = 0.0
+    related_commodity: Optional[str] = None  # NEW: from event level
     
     @classmethod
-    def from_api_response(cls, data: dict) -> 'PolymarketMarket':
+    def from_api_response(cls, data: dict, event_data: dict = None) -> 'PolymarketMarket':
         outcome_prices = [float(p) for p in json.loads(data.get('outcomePrices', '["0.5", "0.5"]'))]
         clob_token_ids = json.loads(data.get('clobTokenIds', '[]'))
         if isinstance(clob_token_ids, str):
@@ -70,11 +71,16 @@ class PolymarketMarket:
         else:
             end_date = datetime.now(timezone.utc)
         
+        # Extract relatedCommodity from event data if available
+        related_commodity = None
+        if event_data:
+            related_commodity = event_data.get('relatedCommodity')
+        
         return cls(
             id=data.get('id', ''), question=data.get('question', ''), condition_id=data.get('conditionId', ''),
             slug=data.get('slug', ''), end_date=end_date, outcome_prices=outcome_prices,
             clob_token_ids=clob_token_ids, outcomes=outcomes, volume=float(data.get('volumeNum', 0) or 0),
-            liquidity=float(data.get('liquidityNum', 0) or 0)
+            liquidity=float(data.get('liquidityNum', 0) or 0), related_commodity=related_commodity
         )
     
     @property
@@ -319,6 +325,7 @@ def infer_ticker_from_question(question: str) -> Optional[str]:
         's&p 500': '^GSPC', 'sp500': '^GSPC', 's&p': '^GSPC',
         'nasdaq': '^IXIC', 'dow': '^DJI',
         'tesla': 'TSLA', 'apple': 'AAPL', 'nvidia': 'NVDA',
+        'usd index': 'DX-Y.NYB', 'dxy': 'DX-Y.NYB', 'dollar index': 'DX-Y.NYB',
     }
     for key, ticker in tickers.items():
         if key in q:
@@ -359,6 +366,154 @@ def calculate_realized_vol(prices: List[float], annualize: bool = True) -> float
 # API FUNCTIONS
 # =============================================================================
 
+def load_markets_from_json(filepath: str) -> List[PolymarketMarket]:
+    """Load markets from a JSON file."""
+    import json
+    
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        markets = []
+        
+        # Handle both event-based and direct market array formats
+        if 'events' in data:
+            # Event-based format - pass event data to capture relatedCommodity
+            for event in data['events']:
+                for market_data in event.get('markets', []):
+                    try:
+                        markets.append(PolymarketMarket.from_api_response(market_data, event_data=event))
+                    except Exception as e:
+                        print(f"Warning: Failed to parse market from JSON: {e}")
+        elif isinstance(data, list):
+            # Direct market array format
+            for market_data in data:
+                try:
+                    markets.append(PolymarketMarket.from_api_response(market_data))
+                except Exception as e:
+                    print(f"Warning: Failed to parse market from JSON: {e}")
+        else:
+            print(f"Error: Unrecognized JSON format")
+            return []
+        
+        return markets
+    except FileNotFoundError:
+        print(f"Error: File '{filepath}' not found")
+        return []
+    except json.JSONDecodeError as e:
+        print(f"Error: Invalid JSON in '{filepath}': {e}")
+        return []
+
+
+def categorize_markets_by_asset(markets: List[PolymarketMarket]) -> Dict[str, List[PolymarketMarket]]:
+    """
+    Categorize markets by their underlying asset.
+    Uses relatedCommodity field if available, otherwise infers from question text.
+    Returns dict mapping asset name -> list of markets.
+    """
+    categories = {
+        'bitcoin': [],
+        'ethereum': [],
+        'solana': [],
+        'gold': [],
+        'silver': [],
+        'oil': [],
+        'usd_index': [],
+        'other': []
+    }
+    
+    # Mapping from relatedCommodity values to our categories
+    # relatedCommodity uses spaces and lowercase
+    commodity_mapping = {
+        'bitcoin': 'bitcoin',
+        'btc': 'bitcoin',
+        'ethereum': 'ethereum',
+        'eth': 'ethereum',
+        'solana': 'solana',
+        'sol': 'solana',
+        'gold': 'gold',
+        'silver': 'silver',
+        'oil': 'oil',
+        'crude': 'oil',
+        'crude oil': 'oil',
+        'wti': 'oil',
+        'usd index': 'usd_index',
+        'dollar index': 'usd_index',
+        'dxy': 'usd_index',
+    }
+    
+    for market in markets:
+        categorized = False
+        
+        # PRIORITY 1: Use relatedCommodity field if available
+        if market.related_commodity:
+            commodity_lower = market.related_commodity.lower().strip()
+            if commodity_lower in commodity_mapping:
+                categories[commodity_mapping[commodity_lower]].append(market)
+                categorized = True
+        
+        # PRIORITY 2: Infer from question text (only if not already categorized)
+        if not categorized:
+            q_lower = market.question.lower()
+            
+            # Check which asset this market is about
+            if any(term in q_lower for term in ['bitcoin', 'btc']):
+                categories['bitcoin'].append(market)
+            elif any(term in q_lower for term in ['ethereum', 'eth', 'ether']):
+                categories['ethereum'].append(market)
+            elif any(term in q_lower for term in ['solana', 'sol']):
+                categories['solana'].append(market)
+            elif 'gold' in q_lower and 'golden' not in q_lower:
+                categories['gold'].append(market)
+            elif 'silver' in q_lower:
+                categories['silver'].append(market)
+            elif any(term in q_lower for term in ['oil', 'crude', 'wti', 'brent']):
+                categories['oil'].append(market)
+            elif any(term in q_lower for term in ['usd index', 'dollar index', 'dxy', 'iranian rial', 'rials', 'rial']):
+                categories['usd_index'].append(market)
+            else:
+                categories['other'].append(market)
+    
+    return categories
+    """
+    Check if search term is relevant in the question.
+    Filters out false matches like 'oil' in 'Oilers' or 'gold' in 'Golden Knights'.
+    """
+    question_lower = question.lower()
+    search_lower = search_term.lower()
+    
+    # Explicit sports team filters to exclude
+    sports_exclusions = [
+        'oilers', 'golden knights', 'golden state warriors', 
+        'predators vs', 'knights vs', 'vs golden'
+    ]
+    
+    # Check if this is a sports match
+    for exclusion in sports_exclusions:
+        if exclusion in question_lower:
+            return False
+    
+    # For common assets, also check for expanded terms
+    asset_expansions = {
+        'oil': ['oil', 'crude', 'wti', 'brent', 'petroleum'],
+        'gold': ['gold', 'xau'],
+        'silver': ['silver', 'xag'],
+        'bitcoin': ['bitcoin', 'btc'],
+        'ethereum': ['ethereum', 'eth', 'ether'],
+        'solana': ['solana', 'sol'],
+    }
+    
+    # If it's a known asset, check for any expansion
+    if search_lower in asset_expansions:
+        for term in asset_expansions[search_lower]:
+            if term in question_lower:
+                return True
+        return False
+    
+    # For other searches, simple substring match
+    return search_lower in question_lower
+
+
 def is_relevant_match(question: str, search_term: str) -> bool:
     """
     Check if search term is relevant in the question.
@@ -367,52 +522,40 @@ def is_relevant_match(question: str, search_term: str) -> bool:
     question_lower = question.lower()
     search_lower = search_term.lower()
     
-    # Asset-specific context keywords that indicate a real match
-    asset_contexts = {
-        'oil': ['crude', 'barrel', 'brent', 'wti', 'price', '$', 'petroleum', 'energy'],
-        'gold': ['price', '$', 'ounce', 'troy', 'bullion', 'precious metal', 'xau'],
-        'silver': ['price', '$', 'ounce', 'troy', 'bullion', 'precious metal', 'xag'],
-        'bitcoin': ['btc', 'crypto', 'price', '$', 'satoshi', 'blockchain'],
-        'ethereum': ['eth', 'crypto', 'price', '$', 'ether', 'blockchain', 'vitalik'],
-        'solana': ['sol', 'crypto', 'price', '$', 'blockchain'],
-    }
+    # Explicit sports team filters to exclude
+    sports_exclusions = [
+        'oilers', 'golden knights', 'golden state warriors', 
+        'predators vs', 'knights vs', 'vs golden'
+    ]
     
-    # Sports team names to explicitly exclude
-    false_positives = {
-        'oil': ['oilers', 'oiler'],
-        'gold': ['golden knights', 'golden state', 'golden'],
-        'silver': [],  # Add if needed
-    }
-    
-    # Check for false positives first
-    if search_lower in false_positives:
-        for false_match in false_positives[search_lower]:
-            if false_match in question_lower:
-                return False
-    
-    # If search term appears in question
-    if search_lower in question_lower:
-        # For known assets, verify context
-        if search_lower in asset_contexts:
-            # Check if any context keyword appears
-            for context in asset_contexts[search_lower]:
-                if context in question_lower:
-                    return True
-            # Also allow if it's a whole word match (not part of another word)
-            import re
-            if re.search(r'\b' + re.escape(search_lower) + r'\b', question_lower):
-                # Additional check: contains price/financial indicators
-                if any(indicator in question_lower for indicator in ['$', 'price', 'reach', 'hit', 'above', 'below']):
-                    return True
+    # Check if this is a sports match
+    for exclusion in sports_exclusions:
+        if exclusion in question_lower:
             return False
-        else:
-            # For non-asset searches, allow any match
-            return True
     
-    return False
+    # For common assets, also check for expanded terms
+    asset_expansions = {
+        'oil': ['oil', 'crude', 'wti', 'brent', 'petroleum'],
+        'gold': ['gold', 'xau'],
+        'silver': ['silver', 'xag'],
+        'bitcoin': ['bitcoin', 'btc'],
+        'ethereum': ['ethereum', 'eth', 'ether'],
+        'solana': ['solana', 'sol'],
+        'usd_index': ['usd index', 'dollar index', 'dxy'],
+    }
+    
+    # If it's a known asset, check for any expansion
+    if search_lower in asset_expansions:
+        for term in asset_expansions[search_lower]:
+            if term in question_lower:
+                return True
+        return False
+    
+    # For other searches, simple substring match
+    return search_lower in question_lower
 
 
-def fetch_live_markets(limit: int = 10, search: str = None) -> List[PolymarketMarket]:
+def fetch_live_markets(limit: int = 10, search: str = None, debug: bool = False) -> List[PolymarketMarket]:
     """Fetch markets from Polymarket API."""
     import requests
     
@@ -428,7 +571,7 @@ def fetch_live_markets(limit: int = 10, search: str = None) -> List[PolymarketMa
         params = {
             "active": "true", 
             "closed": "false", 
-            "limit": 200,  # Fetch more to filter
+            "limit": 500,  # Fetch many more to ensure we find commodity markets
             "order": "volume24hr", 
             "ascending": "false"
         }
@@ -444,6 +587,7 @@ def fetch_live_markets(limit: int = 10, search: str = None) -> List[PolymarketMa
         
         if search:
             # FIXED: Use smart matching to avoid false positives
+            filtered_count = 0
             for m in data:
                 try:
                     market = PolymarketMarket.from_api_response(m)
@@ -452,9 +596,16 @@ def fetch_live_markets(limit: int = 10, search: str = None) -> List[PolymarketMa
                         markets.append(market)
                         if len(markets) >= limit:
                             break
+                    else:
+                        filtered_count += 1
+                        if debug and filtered_count <= 5:
+                            print(f"  [DEBUG] Filtered out: {market.question[:60]}")
                 except Exception as e:
-                    print(f"Warning: Failed to parse market: {e}")
+                    if debug:
+                        print(f"Warning: Failed to parse market: {e}")
                     continue
+            if debug:
+                print(f"  [DEBUG] Filtered {filtered_count} markets, kept {len(markets)}")
         else:
             for m in data:
                 try:
@@ -481,25 +632,32 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
+  # From JSON file (recommended):2
+  python polymarket_greeks.py -f markets.json
+  python polymarket_greeks.py --file my_markets.json --asset bitcoin
+  
+  # From API search:
   python polymarket_greeks.py -n 20                  # Top 20 markets
   python polymarket_greeks.py -s "bitcoin"           # Bitcoin markets
   python polymarket_greeks.py -s "silver" -n 15      # Top 15 silver markets
-  python polymarket_greeks.py -s "oil"               # Oil/crude markets
-  python polymarket_greeks.py -s "gold"              # Gold markets
-  python polymarket_greeks.py -s "ethereum"          # Ethereum markets
+  python polymarket_greeks.py --asset oil            # Oil markets
 
-Popular assets: bitcoin, ethereum, solana, gold, silver, oil
+Popular assets: bitcoin, ethereum, solana, gold, silver, oil, usd_index
         """
     )
+    parser.add_argument("-f", "--file", type=str, default=None, 
+                       help="Load markets from JSON file instead of API")
     parser.add_argument("-n", "--num-markets", type=int, default=10, help="Number of markets")
     parser.add_argument("-s", "--search", type=str, default=None, 
                        help="Search term (e.g., bitcoin, gold, silver, oil, ethereum)")
-    parser.add_argument("--asset", type=str, default=None, choices=['bitcoin', 'ethereum', 'solana', 'gold', 'silver', 'oil'],
-                       help="Quick search for popular assets")
+    parser.add_argument("--asset", type=str, default=None, 
+                       choices=['bitcoin', 'ethereum', 'solana', 'gold', 'silver', 'oil', 'usd_index'],
+                       help="Filter by specific asset (works with both -f and -s)")
+    parser.add_argument("--debug", action="store_true", help="Show debug info about filtered markets")
     args = parser.parse_args()
     
     # Use --asset flag if provided
-    if args.asset:
+    if args.asset and not args.search:
         args.search = args.asset
     
     print("=" * 85)
@@ -511,18 +669,63 @@ Popular assets: bitcoin, ethereum, solana, gold, silver, oil
     print("  Vega:  $ change per 1pp vol increase")
     print("  Theta: $ change per day")
     
-    if args.search:
-        print(f"\nSearching for markets matching: '{args.search}'...")
+    # Load markets from JSON file or API
+    if args.file:
+        print(f"\nLoading markets from: {args.file}")
+        all_markets = load_markets_from_json(args.file)
+        
+        if not all_markets:
+            print("No markets loaded from file.")
+            return
+        
+        # Debug: Show relatedCommodity info
+        if args.debug:
+            print(f"\n[DEBUG] Loaded {len(all_markets)} markets")
+            print(f"[DEBUG] Markets with relatedCommodity field:")
+            with_commodity = [m for m in all_markets if m.related_commodity]
+            without_commodity = [m for m in all_markets if not m.related_commodity]
+            print(f"  With field: {len(with_commodity)}")
+            print(f"  Without field: {len(without_commodity)}")
+            if with_commodity:
+                print(f"\n[DEBUG] Sample relatedCommodity values:")
+                for m in with_commodity[:10]:
+                    print(f"  - '{m.related_commodity}' → {m.question[:50]}...")
+        
+        # Categorize by asset
+        categorized = categorize_markets_by_asset(all_markets)
+        
+        if args.debug:
+            print(f"\n[DEBUG] Categorization results:")
+            for cat, markets_list in categorized.items():
+                if markets_list:
+                    print(f"  {cat}: {len(markets_list)} markets")
+        
+        # Filter by asset if specified
+        if args.asset:
+            markets = categorized.get(args.asset, [])
+            print(f"Found {len(markets)} {args.asset} markets from {len(all_markets)} total markets")
+        else:
+            markets = all_markets
+            print(f"Loaded {len(markets)} markets from file")
+            print("\nMarkets by asset:")
+            for asset, asset_markets in categorized.items():
+                if asset_markets and asset != 'other':
+                    print(f"  {asset.replace('_', ' ').capitalize()}: {len(asset_markets)} markets")
+        
     else:
-        print(f"\nFetching top {args.num_markets} markets by volume...")
-    
-    markets = fetch_live_markets(limit=args.num_markets, search=args.search)
+        # Use API search
+        if args.search:
+            print(f"\nSearching for markets matching: '{args.search}'...")
+        else:
+            print(f"\nFetching top {args.num_markets} markets by volume...")
+        
+        markets = fetch_live_markets(limit=args.num_markets, search=args.search, debug=args.debug)
     
     if not markets:
         print("No markets found.")
         return
     
-    print(f"Found {len(markets)} markets\n")
+    print(f"\nAnalyzing {len(markets)} markets\n")
     
     # Fetch Yahoo Finance data
     underlying_vols = {}
@@ -616,6 +819,7 @@ Popular assets: bitcoin, ethereum, solana, gold, silver, oil
         
         print(f"\n{i+1}. {m.question}")
         print(f"   YES: {m.yes_price*100:.1f}% | NO: {m.no_price*100:.1f}% | Expires: {tau_days:.0f} days | Model: {model_name}")
+        print(f"   Volume: ${m.volume:,.2f} | Liquidity: ${m.liquidity:,.2f}")
         
         if price and strike:
             moneyness = (price - strike) / strike * 100
