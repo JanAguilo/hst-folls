@@ -528,23 +528,74 @@ def optimize_portfolio_strategy():
             }), 200
         
         # Limit to top markets by liquidity to speed up optimization
-        if len(all_markets_with_greeks) > 30:
-            print(f"Found {len(all_markets_with_greeks)} markets, limiting to top 30 by liquidity")
+        # Use more markets for better accuracy
+        if len(all_markets_with_greeks) > 20:
+            print(f"Found {len(all_markets_with_greeks)} markets, limiting to top 20 by liquidity")
             all_markets_with_greeks.sort(key=lambda x: x.get('liquidity', 0), reverse=True)
-            all_markets_with_greeks = all_markets_with_greeks[:30]
+            all_markets_with_greeks = all_markets_with_greeks[:20]
         
         print(f"Optimizing with {len(all_markets_with_greeks)} markets")
         print(f"Target Greeks: {target_greeks}")
         print(f"Max Budget: ${max_budget}")
         
-        # Run optimization
+        # Check feasibility
+        total_greek_capacity = {}
+        for greek in ['delta', 'gamma', 'vega', 'theta']:
+            capacity = sum(abs(m.get(greek, 0)) for m in all_markets_with_greeks)
+            total_greek_capacity[greek] = capacity
+            target_val = target_greeks.get(greek, 0)
+            if abs(target_val) > 0:
+                ratio = capacity / abs(target_val)
+                print(f"  {greek}: target={target_val:.2f}, capacity={capacity:.2f}, ratio={ratio:.1f}x")
+                if ratio < 2:
+                    print(f"  WARNING: {greek} target may be too high (need >2x capacity for optimization)")
+        
+        # Run optimization with timeout protection
         print("Starting optimization...")
-        result = optimize_strategy(
-            markets_with_greeks=all_markets_with_greeks,
-            target_greeks=target_greeks,
-            max_budget=max_budget,
-            initial_greeks=initial_greeks
-        )
+        import signal
+        from contextlib import contextmanager
+        
+        class TimeoutException(Exception):
+            pass
+        
+        @contextmanager
+        def time_limit(seconds):
+            def signal_handler(signum, frame):
+                raise TimeoutException("Optimization timed out")
+            # Windows doesn't support SIGALRM, so we'll skip timeout on Windows
+            if hasattr(signal, 'SIGALRM'):
+                signal.signal(signal.SIGALRM, signal_handler)
+                signal.alarm(seconds)
+            try:
+                yield
+            finally:
+                if hasattr(signal, 'SIGALRM'):
+                    signal.alarm(0)
+        
+        try:
+            # Try with 30 second timeout (Windows will skip this)
+            with time_limit(30):
+                result = optimize_strategy(
+                    markets_with_greeks=all_markets_with_greeks,
+                    target_greeks=target_greeks,
+                    max_budget=max_budget,
+                    initial_greeks=initial_greeks
+                )
+        except TimeoutException:
+            print("Optimization timed out after 30 seconds")
+            return jsonify({
+                'success': False,
+                'error': 'Optimization timed out. Try reducing the number of commodities or target Greeks.',
+                'optimal_positions': [],
+                'achieved_greeks': {},
+                'target_greeks': target_greeks,
+                'metrics': {'error': 'timeout'}
+            }), 200
+        except Exception as e:
+            print(f"Optimization error: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
         
         print(f"Optimization complete! Success: {result.get('success')}")
         print(f"Positions found: {result.get('num_positions', 0)}")

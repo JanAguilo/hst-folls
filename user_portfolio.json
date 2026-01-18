@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-01-18T07:51:35.471782",
+  "last_updated": "2026-01-18T08:49:19.340165",
   "positions": [
     {
       "market_id": "690622",
@@ -185,7 +185,7 @@
       "market_id": "1032231",
       "question": "Will Gold (GC) hit (HIGH) $6,000 by end of January?",
       "asset_category": "bitcoin",
-      "quantity": 0.0,
+      "quantity": 1000.0,
       "yes_price": 0.0035,
       "no_price": 0.9965,
       "expiry_days": 13,
@@ -2403,11 +2403,11 @@
     }
   ],
   "current_greeks": {
-    "delta": 4.870000000000001,
-    "gamma": 0.06027477818893376,
-    "vega": 0.09725610555878458,
-    "theta": -0.14486286135871806,
-    "total_value": 1889.8,
+    "delta": 14.870000000000005,
+    "gamma": 0.09288329943772727,
+    "vega": 0.12953854159509015,
+    "theta": -0.20580858999881607,
+    "total_value": 1893.3,
     "num_positions": 160
   }
 }

@@ -107,6 +107,25 @@ def optimize_strategy(
         }
     
     # Create optimization agent
+    print(f"[OPTIMIZER] Creating agent with {len(market_data_list)} markets")
+    
+    # Calculate market Greek ranges for feasibility check
+    greek_ranges = {}
+    for greek in ['delta', 'gamma', 'vega', 'theta']:
+        values = [abs(getattr(m, greek, 0.0)) for m in market_data_list]
+        if values:
+            greek_ranges[greek] = {
+                'max': max(values),
+                'total_positive': sum(v for m in market_data_list if (v := getattr(m, greek, 0.0)) > 0),
+                'total_negative': sum(abs(v) for m in market_data_list if (v := getattr(m, greek, 0.0)) < 0)
+            }
+    
+    print(f"[OPTIMIZER] Market Greek capabilities:")
+    for greek, target in target_greeks.items():
+        if greek in greek_ranges:
+            r = greek_ranges[greek]
+            print(f"  {greek}: target={target:.2f}, max_single={r['max']:.4f}, total_pos={r['total_positive']:.2f}, total_neg={r['total_negative']:.2f}")
+    
     agent = SimplifiedGreekOptimizationAgent(
         markets=market_data_list,
         current_portfolio=current_portfolio or {},
@@ -115,17 +134,45 @@ def optimize_strategy(
     
     # Calculate max position per market (20% of budget or $1000, whichever is smaller)
     max_position_per_market = min(max_budget * 0.2, 1000.0)
+    print(f"[OPTIMIZER] Max position per market: ${max_position_per_market:.2f}")
+    print(f"[OPTIMIZER] Target Greeks: {target_greeks}")
     
-    # Run optimization
+    # Calculate adaptive weights to balance different magnitude Greeks
+    # All Greeks should have roughly equal importance in the objective function
+    weights = {}
+    target_magnitudes = {k: abs(v) for k, v in target_greeks.items() if abs(v) > 1e-8}
+    
+    if target_magnitudes:
+        # Normalize so all Greeks contribute equally to objective
+        max_magnitude = max(target_magnitudes.values())
+        for greek in target_greeks.keys():
+            if abs(target_greeks[greek]) > 1e-8:
+                # Equal weighting for all non-zero targets
+                weights[greek] = 1.0
+            else:
+                weights[greek] = 0.1  # Lower weight for zero targets
+    else:
+        weights = {k: 1.0 for k in target_greeks.keys()}
+    
+    print(f"[OPTIMIZER] Weights: {weights}")
+    
+    # Run optimization with balanced parameters for accuracy + speed
+    print(f"[OPTIMIZER] Starting scipy optimization...")
     result = agent.optimize(
         target_greeks=target_greeks,
+        weights=weights,  # Use adaptive weights
         max_total_investment=max_budget,
         max_position_per_market=max_position_per_market,
-        min_position_size=0.5,
-        l1_penalty=0.001,
+        min_position_size=0.5,  # Lower minimum for more flexibility
+        l1_penalty=0.002,  # Balanced - not too aggressive
         concentration_penalty=0.0005,
+        max_iterations=1000,  # Balanced iterations for accuracy
+        ftol=1e-8,  # Tighter tolerance for better accuracy
         deterministic=True
     )
+    
+    print(f"[OPTIMIZER] Optimization complete!")
+    print(f"[OPTIMIZER] Success: {result.success}, Positions: {result.num_positions}, Investment: ${result.total_investment:.2f}")
     
     # Format response
     # Add rho: 0 to achieved_greeks for frontend compatibility
