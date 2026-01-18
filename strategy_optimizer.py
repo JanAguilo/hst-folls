@@ -176,6 +176,45 @@ def optimize_strategy(
     print(f"[OPTIMIZER] Optimization complete!")
     print(f"[OPTIMIZER] Success: {result.success}, Positions: {result.num_positions}, Investment: ${result.total_investment:.2f}")
     
+    # Filter out positions with very small quantities (< 1.0 shares)
+    # This prevents adding dozens of tiny positions that don't meaningfully contribute
+    MIN_POSITION_SIZE = 1.0  # Increased from 0.5 to 1.0 for cleaner portfolios
+    filtered_recommendations = [
+        rec for rec in result.recommendations 
+        if abs(rec.get('quantity', 0)) >= MIN_POSITION_SIZE
+    ]
+    
+    # Sort by position value (largest first)
+    filtered_recommendations.sort(key=lambda x: abs(x.get('position_value', 0)), reverse=True)
+    
+    # Limit to top 5-8 positions for simplicity
+    MAX_POSITIONS = 8
+    if len(filtered_recommendations) > MAX_POSITIONS:
+        print(f"[OPTIMIZER] Limiting to top {MAX_POSITIONS} positions (from {len(filtered_recommendations)})")
+        filtered_recommendations = filtered_recommendations[:MAX_POSITIONS]
+    
+    print(f"[OPTIMIZER] Filtered {len(result.recommendations) - len(filtered_recommendations)} tiny/excess positions")
+    print(f"[OPTIMIZER] Final position count: {len(filtered_recommendations)}")
+    
+    # Log each position's Greek contribution for debugging
+    print(f"\n[OPTIMIZER] Position Details:")
+    total_check = {'delta': 0, 'gamma': 0, 'vega': 0, 'theta': 0}
+    for i, rec in enumerate(filtered_recommendations, 1):
+        print(f"  {i}. {rec['market_title'][:50]}")
+        print(f"     Action: {rec['action']}, Qty: {rec['quantity']:.2f}, Value: ${rec['position_value']:.2f}")
+        print(f"     Greek Contributions: D={rec['greek_contributions']['delta']:.4f}, "
+              f"G={rec['greek_contributions']['gamma']:.6f}, "
+              f"V={rec['greek_contributions']['vega']:.4f}, "
+              f"T={rec['greek_contributions']['theta']:.6f}")
+        for greek in total_check:
+            total_check[greek] += rec['greek_contributions'][greek]
+    
+    print(f"\n[OPTIMIZER] Total Greek Contributions from Positions:")
+    print(f"  Delta:  {total_check['delta']:.6f}")
+    print(f"  Gamma:  {total_check['gamma']:.6f}")
+    print(f"  Vega:   {total_check['vega']:.6f}")
+    print(f"  Theta:  {total_check['theta']:.6f}")
+    
     # Format response
     # Add rho: 0 to achieved_greeks for frontend compatibility
     achieved_greeks_with_rho = dict(result.achieved_greeks)
@@ -183,12 +222,12 @@ def optimize_strategy(
     
     response = {
         "success": result.success,
-        "optimal_positions": result.recommendations,
+        "optimal_positions": filtered_recommendations,  # Use filtered list
         "achieved_greeks": achieved_greeks_with_rho,
         "target_greeks": result.target_greeks,
         "deviations": result.deviations,
         "total_investment": result.total_investment,
-        "num_positions": result.num_positions,
+        "num_positions": len(filtered_recommendations),  # Update count
         "optimization_time_ms": result.optimization_time_ms,
         "metrics": result.metrics
     }

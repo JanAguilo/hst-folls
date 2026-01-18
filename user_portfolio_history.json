@@ -1,12 +1,12 @@
 {
   "trade_history": [
     {
-      "timestamp": "2026-01-18T06:28:02.363200",
-      "market_id": "1032232",
-      "question": "Will Gold (GC) hit (HIGH) $5,500 by end of January?",
+      "timestamp": "2026-01-18T10:54:30.332560",
+      "market_id": "1032251",
+      "question": "Will Gold (GC) settle over $4,400 on the final trading day of January 2026?",
       "asset_category": "bitcoin",
-      "quantity": 1000.0,
-      "position_value": 8.0,
+      "quantity": -203.09330949177004,
+      "position_value": 177.7066458052988,
       "greeks_before": {
         "delta": 0.0,
         "gamma": 0.0,
@@ -16,621 +16,846 @@
         "num_positions": 160
       },
       "greeks_after": {
-        "delta": 10.0,
-        "gamma": 0.03260852124852382,
-        "vega": 0.03228243603603858,
-        "theta": -0.06094572864060039,
-        "total_value": 8.0,
+        "delta": -203.09330949177004,
+        "gamma": 2.0130082968758773,
+        "vega": 5.504319561769977,
+        "theta": 35.94690916131937,
+        "total_value": 177.7066458052988,
         "num_positions": 160
       },
       "greek_changes": {
-        "delta": 10.0,
-        "gamma": 0.03260852124852382,
-        "vega": 0.03228243603603858,
-        "theta": -0.06094572864060039
+        "delta": -203.09330949177004,
+        "gamma": 2.0130082968758773,
+        "vega": 5.504319561769977,
+        "theta": 35.94690916131937
       },
-      "correlation_adjusted": true,
-      "notes": "Added from UI: YES 1000.0 shares"
+      "correlation_adjusted": false,
+      "notes": "Added from UI: NO 203.09330949177004 shares"
     },
     {
-      "timestamp": "2026-01-18T06:28:30.110594",
-      "market_id": "1126851",
-      "question": "Will Venezuelan crude oil production reach 1.1m barrels per day in 2026?",
+      "timestamp": "2026-01-18T10:54:30.500704",
+      "market_id": "1198003",
+      "question": "Gold (GC) Up or Down on January 20?",
       "asset_category": "bitcoin",
-      "quantity": 200.0,
-      "position_value": 145.0,
+      "quantity": 73.98409433898404,
+      "position_value": 50.30918415050915,
       "greeks_before": {
-        "delta": 10.0,
-        "gamma": 0.03260852124852382,
-        "vega": 0.03228243603603858,
-        "theta": -0.06094572864060039,
-        "total_value": 8.0,
+        "delta": -203.09330949177004,
+        "gamma": 2.0130082968758773,
+        "vega": 5.504319561769977,
+        "theta": 35.94690916131937,
+        "total_value": 177.7066458052988,
         "num_positions": 160
       },
       "greeks_after": {
-        "delta": 12.0,
-        "gamma": 0.02810852124852382,
-        "vega": -0.05743631396396142,
-        "theta": -0.06592880006229243,
-        "total_value": 153.0,
+        "delta": -129.10921515278602,
+        "gamma": 1.868408004679915,
+        "vega": 4.717693972223942,
+        "theta": 4.567038910718491,
+        "total_value": 228.01582995580793,
         "num_positions": 160
       },
       "greek_changes": {
-        "delta": 2.0,
-        "gamma": -0.0045000000000000005,
-        "vega": -0.08971875,
-        "theta": -0.004983071421692041
+        "delta": 73.98409433898402,
+        "gamma": -0.14460029219596238,
+        "vega": -0.786625589546035,
+        "theta": -31.379870250600877
       },
-      "correlation_adjusted": true,
-      "notes": "Added from UI: YES 200.0 shares"
+      "correlation_adjusted": false,
+      "notes": "Added from UI: YES 73.98409433898404 shares"
     },
     {
-      "timestamp": "2026-01-18T06:28:45.205724",
-      "market_id": "1032409",
-      "question": "Will Crude Oil (CL) hit (LOW) $52 by end of June?",
-      "asset_category": "bitcoin",
-      "quantity": -2000.0,
-      "position_value": 1000.0,
-      "greeks_before": {
-        "delta": 12.0,
-        "gamma": 0.02810852124852382,
-        "vega": -0.05743631396396142,
-        "theta": -0.06592880006229243,
-        "total_value": 153.0,
-        "num_positions": 160
-      },
-      "greeks_after": {
-        "delta": -8.0,
-        "gamma": 0.02810852124852382,
-        "vega": -0.05743631396396142,
-        "theta": -0.06592880006229243,
-        "total_value": 1153.0,
-        "num_positions": 160
-      },
-      "greek_changes": {
-        "delta": -20.0,
-        "gamma": 0.0,
-        "vega": 0.0,
-        "theta": 0.0
-      },
-      "correlation_adjusted": true,
-      "notes": "Added from UI: NO 2000.0 shares"
-    },
-    {
-      "timestamp": "2026-01-18T06:32:18.152560",
-      "market_id": "1126857",
-      "question": "Will Venezuelan crude oil production reach 1.7m barrels per day in 2026?",
-      "asset_category": "bitcoin",
-      "quantity": 600.0,
-      "position_value": 48.0,
-      "greeks_before": {
-        "delta": -8.0,
-        "gamma": 0.02810852124852382,
-        "vega": -0.05743631396396142,
-        "theta": -0.06592880006229243,
-        "total_value": 1153.0,
-        "num_positions": 160
-      },
-      "greeks_after": {
-        "delta": -2.0,
-        "gamma": 0.053308521248523824,
-        "vega": 0.12803568603603854,
-        "theta": -0.07779178451989856,
-        "total_value": 1201.0,
-        "num_positions": 160
-      },
-      "greek_changes": {
-        "delta": 6.0,
-        "gamma": 0.025200000000000004,
-        "vega": 0.18547199999999997,
-        "theta": -0.011862984457606127
-      },
-      "correlation_adjusted": true,
-      "notes": "Added from UI: YES 600.0 shares"
-    },
-    {
-      "timestamp": "2026-01-18T06:32:51.414013",
-      "market_id": "1032233",
-      "question": "Will Gold (GC) hit (HIGH) $5,000 by end of January?",
-      "asset_category": "bitcoin",
-      "quantity": -100.0,
-      "position_value": 7.5,
-      "greeks_before": {
-        "delta": -2.0,
-        "gamma": 0.053308521248523824,
-        "vega": 0.12803568603603854,
-        "theta": -0.07779178451989856,
-        "total_value": 1201.0,
-        "num_positions": 160
-      },
-      "greeks_after": {
-        "delta": -3.0,
-        "gamma": 0.05048023114025565,
-        "vega": 0.10841442340992812,
-        "theta": -0.04001831475294537,
-        "total_value": 1208.5,
-        "num_positions": 160
-      },
-      "greek_changes": {
-        "delta": -1.0,
-        "gamma": -0.0028282901082681763,
-        "vega": -0.019621262626110428,
-        "theta": 0.037773469766953185
-      },
-      "correlation_adjusted": true,
-      "notes": "Added from UI: NO 100.0 shares"
-    },
-    {
-      "timestamp": "2026-01-18T06:33:32.594896",
+      "timestamp": "2026-01-18T10:54:30.728023",
       "market_id": "1032235",
       "question": "Will Gold (GC) hit (HIGH) $4,700 by end of January?",
       "asset_category": "bitcoin",
-      "quantity": 1000.0,
-      "position_value": 540.0,
+      "quantity": -54.14881039882446,
+      "position_value": 29.24035761536521,
       "greeks_before": {
-        "delta": -3.0,
-        "gamma": 0.05048023114025565,
-        "vega": 0.10841442340992812,
-        "theta": -0.04001831475294537,
-        "total_value": 1208.5,
+        "delta": -129.10921515278602,
+        "gamma": 1.868408004679915,
+        "vega": 4.717693972223942,
+        "theta": 4.567038910718491,
+        "total_value": 228.01582995580793,
         "num_positions": 160
       },
       "greeks_after": {
-        "delta": 7.0,
-        "gamma": 0.047818311038396746,
-        "vega": 0.04229232807975293,
-        "theta": -0.15415602020891941,
-        "total_value": 1748.5,
+        "delta": -183.25802555161044,
+        "gamma": 1.92565696343817,
+        "vega": 5.073210006112704,
+        "theta": 6.390140481069263,
+        "total_value": 257.25618757117314,
         "num_positions": 160
       },
       "greek_changes": {
-        "delta": 10.0,
-        "gamma": -0.0026619201018589014,
-        "vega": -0.06612209533017518,
-        "theta": -0.11413770545597404
+        "delta": -54.14881039882442,
+        "gamma": 0.057248958758254975,
+        "vega": 0.35551603388876174,
+        "theta": 1.8231015703507722
       },
-      "correlation_adjusted": true,
-      "notes": "Added from UI: YES 1000.0 shares"
+      "correlation_adjusted": false,
+      "notes": "Added from UI: NO 54.14881039882446 shares"
     },
     {
-      "timestamp": "2026-01-18T06:33:44.775040",
-      "market_id": "1126851",
-      "question": "Will Venezuelan crude oil production reach 1.1m barrels per day in 2026?",
+      "timestamp": "2026-01-18T10:54:30.855860",
+      "market_id": "1032254",
+      "question": "Will Gold (GC) settle over $3,600 on the final trading day of January 2026?",
       "asset_category": "bitcoin",
-      "quantity": -100.0,
-      "position_value": 72.5,
+      "quantity": -24.830025975964944,
+      "position_value": 24.743120885049066,
       "greeks_before": {
-        "delta": 7.0,
-        "gamma": 0.047818311038396746,
-        "vega": 0.04229232807975293,
-        "theta": -0.15415602020891941,
-        "total_value": 1748.5,
+        "delta": -183.25802555161044,
+        "gamma": 1.92565696343817,
+        "vega": 5.073210006112704,
+        "theta": 6.390140481069263,
+        "total_value": 257.25618757117314,
         "num_positions": 160
       },
       "greeks_after": {
-        "delta": 6.0,
-        "gamma": 0.05006831103839674,
-        "vega": 0.08715170307975292,
-        "theta": -0.15166448449807338,
-        "total_value": 1676.0,
+        "delta": -208.08805152757537,
+        "gamma": 2.2472391134028857,
+        "vega": 5.152801588228971,
+        "theta": 6.989805776209867,
+        "total_value": 281.99930845622225,
         "num_positions": 160
       },
       "greek_changes": {
-        "delta": -1.0,
-        "gamma": 0.002249999999999995,
-        "vega": 0.04485937499999999,
-        "theta": 0.002491535710846038
+        "delta": -24.83002597596493,
+        "gamma": 0.3215821499647158,
+        "vega": 0.07959158211626693,
+        "theta": 0.5996652951406034
       },
-      "correlation_adjusted": true,
-      "notes": "Added from UI: NO 100.0 shares"
+      "correlation_adjusted": false,
+      "notes": "Added from UI: NO 24.830025975964944 shares"
     },
     {
-      "timestamp": "2026-01-18T07:51:23.478617",
-      "market_id": "1032232",
-      "question": "Will Gold (GC) hit (HIGH) $5,500 by end of January?",
+      "timestamp": "2026-01-18T10:54:31.076721",
+      "market_id": "1032227",
+      "question": "Will Gold (GC) settle at $4,725-$4,850 in January?",
       "asset_category": "bitcoin",
-      "quantity": 100.0,
-      "position_value": 0.8,
+      "quantity": 134.8010287490807,
+      "position_value": 24.061983631710905,
       "greeks_before": {
-        "delta": 6.0,
-        "gamma": 0.05006831103839674,
-        "vega": 0.08715170307975292,
-        "theta": -0.15166448449807338,
-        "total_value": 1676.0,
+        "delta": -208.08805152757537,
+        "gamma": 2.2472391134028857,
+        "vega": 5.152801588228971,
+        "theta": 6.989805776209867,
+        "total_value": 281.99930845622225,
         "num_positions": 160
       },
       "greeks_after": {
-        "delta": 7.0,
-        "gamma": 0.05332916316324912,
-        "vega": 0.09037994668335678,
-        "theta": -0.15775905736213341,
-        "total_value": 1676.8,
+        "delta": -73.28702277849472,
+        "gamma": 3.3927332342474354,
+        "vega": 9.352118601200791,
+        "theta": -31.281076076242766,
+        "total_value": 306.0612920879331,
         "num_positions": 160
       },
       "greek_changes": {
-        "delta": 1.0,
-        "gamma": 0.00326085212485238,
-        "vega": 0.003228243603603853,
-        "theta": -0.006094572864060038
+        "delta": 134.80102874908067,
+        "gamma": 1.1454941208445497,
+        "vega": 4.199317012971821,
+        "theta": -38.27088185245263
       },
-      "correlation_adjusted": true,
-      "notes": "Added from UI: YES 100.0 shares"
+      "correlation_adjusted": false,
+      "notes": "Added from UI: YES 134.8010287490807 shares"
     },
     {
-      "timestamp": "2026-01-18T07:51:35.471588",
-      "market_id": "1032236",
-      "question": "Will Gold (GC) hit (HIGH) $4,600 by end of January?",
-      "asset_category": "bitcoin",
-      "quantity": -213.0,
-      "position_value": 213.0,
-      "greeks_before": {
-        "delta": 7.0,
-        "gamma": 0.05332916316324912,
-        "vega": 0.09037994668335678,
-        "theta": -0.15775905736213341,
-        "total_value": 1676.8,
-        "num_positions": 160
-      },
-      "greeks_after": {
-        "delta": 4.870000000000001,
-        "gamma": 0.06027477818893376,
-        "vega": 0.09725610555878458,
-        "theta": -0.14486286135871806,
-        "total_value": 1889.8,
-        "num_positions": 160
-      },
-      "greek_changes": {
-        "delta": -2.129999999999999,
-        "gamma": 0.006945615025684637,
-        "vega": 0.006876158875427807,
-        "theta": 0.01289619600341535
-      },
-      "correlation_adjusted": true,
-      "notes": "Added from UI: NO 213.0 shares"
-    },
-    {
-      "timestamp": "2026-01-18T08:49:19.339748",
-      "market_id": "1032231",
-      "question": "Will Gold (GC) hit (HIGH) $6,000 by end of January?",
-      "asset_category": "bitcoin",
-      "quantity": 1000.0,
-      "position_value": 3.5,
-      "greeks_before": {
-        "delta": 4.870000000000001,
-        "gamma": 0.06027477818893376,
-        "vega": 0.09725610555878458,
-        "theta": -0.14486286135871806,
-        "total_value": 1889.8,
-        "num_positions": 160
-      },
-      "greeks_after": {
-        "delta": 14.870000000000005,
-        "gamma": 0.09288329943772727,
-        "vega": 0.12953854159509015,
-        "theta": -0.20580858999881607,
-        "total_value": 1893.3,
-        "num_positions": 160
-      },
-      "greek_changes": {
-        "delta": 10.000000000000004,
-        "gamma": 0.032608521248793515,
-        "vega": 0.03228243603630557,
-        "theta": -0.06094572864009801
-      },
-      "correlation_adjusted": true,
-      "notes": "Added from UI: YES 1000.0 shares"
-    },
-    {
-      "timestamp": "2026-01-18T08:54:30.297920",
+      "timestamp": "2026-01-18T10:54:31.198666",
       "market_id": "1032224",
       "question": "Will Gold (GC) settle at $4,350-$4,475 in January?",
       "asset_category": "bitcoin",
-      "quantity": 1.0,
-      "position_value": 0.15,
+      "quantity": 148.90289340831112,
+      "position_value": 22.335434011246665,
       "greeks_before": {
-        "delta": 14.870000000000005,
-        "gamma": 0.09288329943772727,
-        "vega": 0.12953854159509015,
-        "theta": -0.20580858999881607,
-        "total_value": 1893.3,
+        "delta": -73.28702277849472,
+        "gamma": 3.3927332342474354,
+        "vega": 9.352118601200791,
+        "theta": -31.281076076242766,
+        "total_value": 306.0612920879331,
         "num_positions": 160
       },
       "greeks_after": {
-        "delta": 14.880000000000003,
-        "gamma": 0.09290659123861672,
-        "vega": 0.12983551205643065,
-        "theta": -0.2063911041855014,
-        "total_value": 1893.4499999999998,
+        "delta": 75.61587062981641,
+        "gamma": 4.770227697532224,
+        "vega": 13.742882202921056,
+        "theta": -70.4489491933717,
+        "total_value": 328.3967260991798,
         "num_positions": 160
       },
       "greek_changes": {
-        "delta": 0.00999999999999801,
-        "gamma": 2.3291800889446712e-05,
-        "vega": 0.0002969704613405011,
-        "theta": -0.00058251418668534
+        "delta": 148.90289340831112,
+        "gamma": 1.3774944632847888,
+        "vega": 4.3907636017202645,
+        "theta": -39.167873117128934
       },
-      "correlation_adjusted": true,
-      "notes": "Added from UI: YES 1.0 shares"
+      "correlation_adjusted": false,
+      "notes": "Added from UI: YES 148.90289340831112 shares"
     },
     {
-      "timestamp": "2026-01-18T08:55:05.243212",
-      "market_id": "1032240",
-      "question": "Will Gold (GC) hit (LOW) $4,000 by end of January?",
+      "timestamp": "2026-01-18T10:54:31.439146",
+      "market_id": "1032234",
+      "question": "Will Gold (GC) hit (HIGH) $4,900 by end of January?",
       "asset_category": "bitcoin",
-      "quantity": 5.0,
-      "position_value": 0.13,
+      "quantity": 112.68192830696967,
+      "position_value": 18.029108529115145,
       "greeks_before": {
-        "delta": 14.880000000000003,
-        "gamma": 0.09290659123861672,
-        "vega": 0.12983551205643065,
-        "theta": -0.2063911041855014,
-        "total_value": 1893.4499999999998,
+        "delta": 75.61587062981641,
+        "gamma": 4.770227697532224,
+        "vega": 13.742882202921056,
+        "theta": -70.4489491933717,
+        "total_value": 328.3967260991798,
         "num_positions": 160
       },
       "greeks_after": {
-        "delta": 14.930000000000007,
-        "gamma": 0.09306431000464431,
-        "vega": 0.13023491905951892,
-        "theta": -0.2071489983224935,
-        "total_value": 1893.58,
+        "delta": 188.29779893678608,
+        "gamma": 5.782860212670501,
+        "vega": 17.145327453785672,
+        "theta": -101.03737271787637,
+        "total_value": 346.4258346282949,
         "num_positions": 160
       },
       "greek_changes": {
-        "delta": 0.05000000000000426,
-        "gamma": 0.00015771876602758972,
-        "vega": 0.00039940700308827015,
-        "theta": -0.0007578941369920933
+        "delta": 112.68192830696967,
+        "gamma": 1.012632515138277,
+        "vega": 3.4024452508646164,
+        "theta": -30.588423524504663
       },
-      "correlation_adjusted": true,
-      "notes": "Added from UI: YES 5.0 shares"
+      "correlation_adjusted": false,
+      "notes": "Added from UI: YES 112.68192830696967 shares"
     },
     {
-      "timestamp": "2026-01-18T08:55:25.714499",
-      "market_id": "1032236",
-      "question": "Will Gold (GC) hit (HIGH) $4,600 by end of January?",
+      "timestamp": "2026-01-18T10:54:31.555026",
+      "market_id": "1032239",
+      "question": "Will Gold (GC) hit (LOW) $4,200 by end of January?",
       "asset_category": "bitcoin",
-      "quantity": 1.0,
-      "position_value": 1.0,
+      "quantity": 144.79033579503604,
+      "position_value": 11.583226863602883,
       "greeks_before": {
-        "delta": 14.930000000000007,
-        "gamma": 0.09306431000464431,
-        "vega": 0.13023491905951892,
-        "theta": -0.2071489983224935,
-        "total_value": 1893.58,
+        "delta": 188.29779893678608,
+        "gamma": 5.782860212670501,
+        "vega": 17.145327453785672,
+        "theta": -101.03737271787637,
+        "total_value": 346.4258346282949,
         "num_positions": 160
       },
       "greeks_after": {
-        "delta": 14.939999999999998,
-        "gamma": 0.09303170148339697,
-        "vega": 0.13020263662348402,
-        "theta": -0.2072095438436363,
-        "total_value": 1892.58,
+        "delta": 333.0881347318222,
+        "gamma": 7.390199449822283,
+        "vega": 20.102831650144946,
+        "theta": -125.81154427630527,
+        "total_value": 358.0090614918978,
         "num_positions": 160
       },
       "greek_changes": {
-        "delta": 0.009999999999990905,
-        "gamma": -3.260852124734037e-05,
-        "vega": -3.228243603489722e-05,
-        "theta": -6.054552114279077e-05
+        "delta": 144.79033579503613,
+        "gamma": 1.6073392371517823,
+        "vega": 2.957504196359274,
+        "theta": -24.774171558428904
       },
-      "correlation_adjusted": true,
-      "notes": "Added from UI: YES 1.0 shares"
+      "correlation_adjusted": false,
+      "notes": "Added from UI: YES 144.79033579503604 shares"
     },
     {
-      "timestamp": "2026-01-18T09:05:40.819630",
+      "timestamp": "2026-01-18T10:54:51.673018",
+      "market_id": "1032231",
+      "question": "Will Gold (GC) hit (HIGH) $6,000 by end of January?",
+      "asset_category": "bitcoin",
+      "quantity": 100.0,
+      "position_value": 0.35000000000000003,
+      "greeks_before": {
+        "delta": 333.0881347318222,
+        "gamma": 7.390199449822283,
+        "vega": 20.102831650144946,
+        "theta": -125.81154427630527,
+        "total_value": 358.0090614918978,
+        "num_positions": 160
+      },
+      "greeks_after": {
+        "delta": 433.0881347318222,
+        "gamma": 8.685333617464797,
+        "vega": 20.42337735663647,
+        "theta": -128.29065869765995,
+        "total_value": 358.3590614918978,
+        "num_positions": 160
+      },
+      "greek_changes": {
+        "delta": 100.0,
+        "gamma": 1.295134167642514,
+        "vega": 0.32054570649152225,
+        "theta": -2.47911442135468
+      },
+      "correlation_adjusted": false,
+      "notes": "Added from UI: YES 100.0 shares"
+    },
+    {
+      "timestamp": "2026-01-18T10:55:10.494231",
+      "market_id": "1032251",
+      "question": "Will Gold (GC) settle over $4,400 on the final trading day of January 2026?",
+      "asset_category": "bitcoin",
+      "quantity": 203.09330949177004,
+      "position_value": 177.7066458052988,
+      "greeks_before": {
+        "delta": 433.0881347318222,
+        "gamma": 8.685333617464797,
+        "vega": 20.42337735663647,
+        "theta": -128.29065869765995,
+        "total_value": 358.3590614918978,
+        "num_positions": 160
+      },
+      "greeks_after": {
+        "delta": 636.1814442235922,
+        "gamma": 6.67232532058892,
+        "vega": 14.919057794866491,
+        "theta": -164.2375678589793,
+        "total_value": 180.65241568659903,
+        "num_positions": 160
+      },
+      "greek_changes": {
+        "delta": 203.09330949176996,
+        "gamma": -2.013008296875878,
+        "vega": -5.504319561769977,
+        "theta": -35.946909161319354
+      },
+      "correlation_adjusted": false,
+      "notes": "Added from UI: NO 203.09330949177004 shares"
+    },
+    {
+      "timestamp": "2026-01-18T10:55:12.717221",
+      "market_id": "1198003",
+      "question": "Gold (GC) Up or Down on January 20?",
+      "asset_category": "bitcoin",
+      "quantity": -73.98409433898404,
+      "position_value": 50.30918415050915,
+      "greeks_before": {
+        "delta": 636.1814442235922,
+        "gamma": 6.67232532058892,
+        "vega": 14.919057794866491,
+        "theta": -164.2375678589793,
+        "total_value": 180.65241568659903,
+        "num_positions": 160
+      },
+      "greeks_after": {
+        "delta": 562.1973498846081,
+        "gamma": 6.816925612784882,
+        "vega": 15.705683384412525,
+        "theta": -132.85769760837843,
+        "total_value": 130.3432315360899,
+        "num_positions": 160
+      },
+      "greek_changes": {
+        "delta": -73.98409433898405,
+        "gamma": 0.14460029219596215,
+        "vega": 0.7866255895460341,
+        "theta": 31.379870250600874
+      },
+      "correlation_adjusted": false,
+      "notes": "Added from UI: YES 73.98409433898404 shares"
+    },
+    {
+      "timestamp": "2026-01-18T10:55:14.807343",
+      "market_id": "1032235",
+      "question": "Will Gold (GC) hit (HIGH) $4,700 by end of January?",
+      "asset_category": "bitcoin",
+      "quantity": 54.14881039882446,
+      "position_value": 29.24035761536521,
+      "greeks_before": {
+        "delta": 562.1973498846081,
+        "gamma": 6.816925612784882,
+        "vega": 15.705683384412525,
+        "theta": -132.85769760837843,
+        "total_value": 130.3432315360899,
+        "num_positions": 160
+      },
+      "greeks_after": {
+        "delta": 616.3461602834326,
+        "gamma": 6.759676654026627,
+        "vega": 15.350167350523764,
+        "theta": -134.68079917872922,
+        "total_value": 101.10287392072466,
+        "num_positions": 160
+      },
+      "greek_changes": {
+        "delta": 54.14881039882448,
+        "gamma": -0.05724895875825453,
+        "vega": -0.35551603388876174,
+        "theta": -1.8231015703507865
+      },
+      "correlation_adjusted": false,
+      "notes": "Added from UI: NO 54.14881039882446 shares"
+    },
+    {
+      "timestamp": "2026-01-18T10:55:16.781691",
+      "market_id": "1032254",
+      "question": "Will Gold (GC) settle over $3,600 on the final trading day of January 2026?",
+      "asset_category": "bitcoin",
+      "quantity": 24.830025975964944,
+      "position_value": 24.743120885049066,
+      "greeks_before": {
+        "delta": 616.3461602834326,
+        "gamma": 6.759676654026627,
+        "vega": 15.350167350523764,
+        "theta": -134.68079917872922,
+        "total_value": 101.10287392072466,
+        "num_positions": 160
+      },
+      "greeks_after": {
+        "delta": 641.1761862593976,
+        "gamma": 6.438094504061912,
+        "vega": 15.270575768407497,
+        "theta": -135.2804644738698,
+        "total_value": 76.3597530356756,
+        "num_positions": 160
+      },
+      "greek_changes": {
+        "delta": 24.830025975964986,
+        "gamma": -0.32158214996471557,
+        "vega": -0.07959158211626693,
+        "theta": -0.5996652951405963
+      },
+      "correlation_adjusted": false,
+      "notes": "Added from UI: NO 24.830025975964944 shares"
+    },
+    {
+      "timestamp": "2026-01-18T10:55:18.350681",
+      "market_id": "1032227",
+      "question": "Will Gold (GC) settle at $4,725-$4,850 in January?",
+      "asset_category": "bitcoin",
+      "quantity": -134.8010287490807,
+      "position_value": 24.061983631710905,
+      "greeks_before": {
+        "delta": 641.1761862593976,
+        "gamma": 6.438094504061912,
+        "vega": 15.270575768407497,
+        "theta": -135.2804644738698,
+        "total_value": 76.3597530356756,
+        "num_positions": 160
+      },
+      "greeks_after": {
+        "delta": 506.37515751031685,
+        "gamma": 5.292600383217362,
+        "vega": 11.071258755435677,
+        "theta": -97.00958262141717,
+        "total_value": 52.29776940396469,
+        "num_positions": 160
+      },
+      "greek_changes": {
+        "delta": -134.80102874908073,
+        "gamma": -1.1454941208445497,
+        "vega": -4.19931701297182,
+        "theta": 38.270881852452646
+      },
+      "correlation_adjusted": false,
+      "notes": "Added from UI: YES 134.8010287490807 shares"
+    },
+    {
+      "timestamp": "2026-01-18T10:55:19.674472",
+      "market_id": "1032224",
+      "question": "Will Gold (GC) settle at $4,350-$4,475 in January?",
+      "asset_category": "bitcoin",
+      "quantity": -148.90289340831112,
+      "position_value": 22.335434011246665,
+      "greeks_before": {
+        "delta": 506.37515751031685,
+        "gamma": 5.292600383217362,
+        "vega": 11.071258755435677,
+        "theta": -97.00958262141717,
+        "total_value": 52.29776940396469,
+        "num_positions": 160
+      },
+      "greeks_after": {
+        "delta": 357.47226410200574,
+        "gamma": 3.9151059199325733,
+        "vega": 6.6804951537154125,
+        "theta": -57.84170950428823,
+        "total_value": 29.962335392718032,
+        "num_positions": 160
+      },
+      "greek_changes": {
+        "delta": -148.90289340831112,
+        "gamma": -1.3774944632847888,
+        "vega": -4.3907636017202645,
+        "theta": 39.167873117128934
+      },
+      "correlation_adjusted": false,
+      "notes": "Added from UI: YES 148.90289340831112 shares"
+    },
+    {
+      "timestamp": "2026-01-18T10:55:20.992351",
+      "market_id": "1032234",
+      "question": "Will Gold (GC) hit (HIGH) $4,900 by end of January?",
+      "asset_category": "bitcoin",
+      "quantity": -112.68192830696967,
+      "position_value": 18.029108529115145,
+      "greeks_before": {
+        "delta": 357.47226410200574,
+        "gamma": 3.9151059199325733,
+        "vega": 6.6804951537154125,
+        "theta": -57.84170950428823,
+        "total_value": 29.962335392718032,
+        "num_positions": 160
+      },
+      "greeks_after": {
+        "delta": 244.79033579503604,
+        "gamma": 2.9024734047942955,
+        "vega": 3.278049902850801,
+        "theta": -27.253285979783584,
+        "total_value": 11.933226863602883,
+        "num_positions": 160
+      },
+      "greek_changes": {
+        "delta": -112.6819283069697,
+        "gamma": -1.0126325151382778,
+        "vega": -3.4024452508646115,
+        "theta": 30.58842352450465
+      },
+      "correlation_adjusted": false,
+      "notes": "Added from UI: YES 112.68192830696967 shares"
+    },
+    {
+      "timestamp": "2026-01-18T10:55:22.610226",
+      "market_id": "1032239",
+      "question": "Will Gold (GC) hit (LOW) $4,200 by end of January?",
+      "asset_category": "bitcoin",
+      "quantity": -144.79033579503604,
+      "position_value": 11.583226863602883,
+      "greeks_before": {
+        "delta": 244.79033579503604,
+        "gamma": 2.9024734047942955,
+        "vega": 3.278049902850801,
+        "theta": -27.253285979783584,
+        "total_value": 11.933226863602883,
+        "num_positions": 160
+      },
+      "greeks_after": {
+        "delta": 100.0,
+        "gamma": 1.2951341676425137,
+        "vega": 0.3205457064915221,
+        "theta": -2.4791144213546787,
+        "total_value": 0.35000000000000003,
+        "num_positions": 160
+      },
+      "greek_changes": {
+        "delta": -144.79033579503604,
+        "gamma": -1.6073392371517818,
+        "vega": -2.9575041963592787,
+        "theta": 24.774171558428904
+      },
+      "correlation_adjusted": false,
+      "notes": "Added from UI: YES 144.79033579503604 shares"
+    },
+    {
+      "timestamp": "2026-01-18T10:55:26.808667",
+      "market_id": "1032231",
+      "question": "Will Gold (GC) hit (HIGH) $6,000 by end of January?",
+      "asset_category": "bitcoin",
+      "quantity": -100.0,
+      "position_value": 0.35000000000000003,
+      "greeks_before": {
+        "delta": 100.0,
+        "gamma": 1.2951341676425137,
+        "vega": 0.3205457064915221,
+        "theta": -2.4791144213546787,
+        "total_value": 0.35000000000000003,
+        "num_positions": 160
+      },
+      "greeks_after": {
+        "delta": 0.0,
+        "gamma": 0.0,
+        "vega": 0.0,
+        "theta": 0.0,
+        "total_value": 0.0,
+        "num_positions": 160
+      },
+      "greek_changes": {
+        "delta": -100.0,
+        "gamma": -1.2951341676425137,
+        "vega": -0.3205457064915221,
+        "theta": 2.4791144213546787
+      },
+      "correlation_adjusted": false,
+      "notes": "Added from UI: YES 100.0 shares"
+    },
+    {
+      "timestamp": "2026-01-18T10:55:44.608450",
       "market_id": "1032231",
       "question": "Will Gold (GC) hit (HIGH) $6,000 by end of January?",
       "asset_category": "bitcoin",
       "quantity": 1000.0,
       "position_value": 3.5,
       "greeks_before": {
-        "delta": 14.939999999999998,
-        "gamma": 0.09303170148339697,
-        "vega": 0.13020263662348402,
-        "theta": -0.2072095438436363,
-        "total_value": 1892.58,
+        "delta": 0.0,
+        "gamma": 0.0,
+        "vega": 0.0,
+        "theta": 0.0,
+        "total_value": 0.0,
         "num_positions": 160
       },
       "greeks_after": {
-        "delta": 24.939999999999998,
-        "gamma": 0.12564022273219047,
-        "vega": 0.16248507265978962,
-        "theta": -0.2681552724837344,
-        "total_value": 1896.08,
+        "delta": 1000.0,
+        "gamma": 12.951341676425136,
+        "vega": 3.2054570649152208,
+        "theta": -24.79114421354679,
+        "total_value": 3.5,
         "num_positions": 160
       },
       "greek_changes": {
-        "delta": 10.0,
-        "gamma": 0.0326085212487935,
-        "vega": 0.032282436036305595,
-        "theta": -0.06094572864009809
+        "delta": 1000.0,
+        "gamma": 12.951341676425136,
+        "vega": 3.2054570649152208,
+        "theta": -24.79114421354679
       },
-      "correlation_adjusted": true,
+      "correlation_adjusted": false,
       "notes": "Added from UI: YES 1000.0 shares"
     }
   ],
   "greek_history": [
     {
-      "timestamp": "2026-01-18T06:28:02.363285",
+      "timestamp": "2026-01-18T10:54:30.332589",
       "greeks": {
-        "delta": 10.0,
-        "gamma": 0.03260852124852382,
-        "vega": 0.03228243603603858,
-        "theta": -0.06094572864060039,
-        "total_value": 8.0,
+        "delta": -203.09330949177004,
+        "gamma": 2.0130082968758773,
+        "vega": 5.504319561769977,
+        "theta": 35.94690916131937,
+        "total_value": 177.7066458052988,
         "num_positions": 160
       },
       "num_positions": 160,
-      "total_value": 8.0
+      "total_value": 177.7066458052988
     },
     {
-      "timestamp": "2026-01-18T06:28:30.110654",
+      "timestamp": "2026-01-18T10:54:30.500772",
       "greeks": {
-        "delta": 12.0,
-        "gamma": 0.02810852124852382,
-        "vega": -0.05743631396396142,
-        "theta": -0.06592880006229243,
-        "total_value": 153.0,
+        "delta": -129.10921515278602,
+        "gamma": 1.868408004679915,
+        "vega": 4.717693972223942,
+        "theta": 4.567038910718491,
+        "total_value": 228.01582995580793,
         "num_positions": 160
       },
       "num_positions": 160,
-      "total_value": 153.0
+      "total_value": 228.01582995580793
     },
     {
-      "timestamp": "2026-01-18T06:28:45.205768",
+      "timestamp": "2026-01-18T10:54:30.728060",
       "greeks": {
-        "delta": -8.0,
-        "gamma": 0.02810852124852382,
-        "vega": -0.05743631396396142,
-        "theta": -0.06592880006229243,
-        "total_value": 1153.0,
+        "delta": -183.25802555161044,
+        "gamma": 1.92565696343817,
+        "vega": 5.073210006112704,
+        "theta": 6.390140481069263,
+        "total_value": 257.25618757117314,
         "num_positions": 160
       },
       "num_positions": 160,
-      "total_value": 1153.0
+      "total_value": 257.25618757117314
     },
     {
-      "timestamp": "2026-01-18T06:32:18.152609",
+      "timestamp": "2026-01-18T10:54:30.855905",
       "greeks": {
-        "delta": -2.0,
-        "gamma": 0.053308521248523824,
-        "vega": 0.12803568603603854,
-        "theta": -0.07779178451989856,
-        "total_value": 1201.0,
+        "delta": -208.08805152757537,
+        "gamma": 2.2472391134028857,
+        "vega": 5.152801588228971,
+        "theta": 6.989805776209867,
+        "total_value": 281.99930845622225,
         "num_positions": 160
       },
       "num_positions": 160,
-      "total_value": 1201.0
+      "total_value": 281.99930845622225
     },
     {
-      "timestamp": "2026-01-18T06:32:51.414075",
+      "timestamp": "2026-01-18T10:54:31.076764",
       "greeks": {
-        "delta": -3.0,
-        "gamma": 0.05048023114025565,
-        "vega": 0.10841442340992812,
-        "theta": -0.04001831475294537,
-        "total_value": 1208.5,
+        "delta": -73.28702277849472,
+        "gamma": 3.3927332342474354,
+        "vega": 9.352118601200791,
+        "theta": -31.281076076242766,
+        "total_value": 306.0612920879331,
         "num_positions": 160
       },
       "num_positions": 160,
-      "total_value": 1208.5
+      "total_value": 306.0612920879331
     },
     {
-      "timestamp": "2026-01-18T06:33:32.595366",
+      "timestamp": "2026-01-18T10:54:31.198693",
       "greeks": {
-        "delta": 7.0,
-        "gamma": 0.047818311038396746,
-        "vega": 0.04229232807975293,
-        "theta": -0.15415602020891941,
-        "total_value": 1748.5,
+        "delta": 75.61587062981641,
+        "gamma": 4.770227697532224,
+        "vega": 13.742882202921056,
+        "theta": -70.4489491933717,
+        "total_value": 328.3967260991798,
         "num_positions": 160
       },
       "num_positions": 160,
-      "total_value": 1748.5
+      "total_value": 328.3967260991798
     },
     {
-      "timestamp": "2026-01-18T06:33:44.775111",
+      "timestamp": "2026-01-18T10:54:31.439192",
       "greeks": {
-        "delta": 6.0,
-        "gamma": 0.05006831103839674,
-        "vega": 0.08715170307975292,
-        "theta": -0.15166448449807338,
-        "total_value": 1676.0,
+        "delta": 188.29779893678608,
+        "gamma": 5.782860212670501,
+        "vega": 17.145327453785672,
+        "theta": -101.03737271787637,
+        "total_value": 346.4258346282949,
         "num_positions": 160
       },
       "num_positions": 160,
-      "total_value": 1676.0
+      "total_value": 346.4258346282949
     },
     {
-      "timestamp": "2026-01-18T07:51:23.478655",
+      "timestamp": "2026-01-18T10:54:31.555072",
       "greeks": {
-        "delta": 7.0,
-        "gamma": 0.05332916316324912,
-        "vega": 0.09037994668335678,
-        "theta": -0.15775905736213341,
-        "total_value": 1676.8,
+        "delta": 333.0881347318222,
+        "gamma": 7.390199449822283,
+        "vega": 20.102831650144946,
+        "theta": -125.81154427630527,
+        "total_value": 358.0090614918978,
         "num_positions": 160
       },
       "num_positions": 160,
-      "total_value": 1676.8
+      "total_value": 358.0090614918978
     },
     {
-      "timestamp": "2026-01-18T07:51:35.471640",
+      "timestamp": "2026-01-18T10:54:51.673072",
       "greeks": {
-        "delta": 4.870000000000001,
-        "gamma": 0.06027477818893376,
-        "vega": 0.09725610555878458,
-        "theta": -0.14486286135871806,
-        "total_value": 1889.8,
+        "delta": 433.0881347318222,
+        "gamma": 8.685333617464797,
+        "vega": 20.42337735663647,
+        "theta": -128.29065869765995,
+        "total_value": 358.3590614918978,
         "num_positions": 160
       },
       "num_positions": 160,
-      "total_value": 1889.8
+      "total_value": 358.3590614918978
     },
     {
-      "timestamp": "2026-01-18T08:49:19.339983",
+      "timestamp": "2026-01-18T10:55:10.494302",
       "greeks": {
-        "delta": 14.870000000000005,
-        "gamma": 0.09288329943772727,
-        "vega": 0.12953854159509015,
-        "theta": -0.20580858999881607,
-        "total_value": 1893.3,
+        "delta": 636.1814442235922,
+        "gamma": 6.67232532058892,
+        "vega": 14.919057794866491,
+        "theta": -164.2375678589793,
+        "total_value": 180.65241568659903,
         "num_positions": 160
       },
       "num_positions": 160,
-      "total_value": 1893.3
+      "total_value": 180.65241568659903
     },
     {
-      "timestamp": "2026-01-18T08:54:30.298968",
+      "timestamp": "2026-01-18T10:55:12.717368",
       "greeks": {
-        "delta": 14.880000000000003,
-        "gamma": 0.09290659123861672,
-        "vega": 0.12983551205643065,
-        "theta": -0.2063911041855014,
-        "total_value": 1893.4499999999998,
+        "delta": 562.1973498846081,
+        "gamma": 6.816925612784882,
+        "vega": 15.705683384412525,
+        "theta": -132.85769760837843,
+        "total_value": 130.3432315360899,
         "num_positions": 160
       },
       "num_positions": 160,
-      "total_value": 1893.4499999999998
+      "total_value": 130.3432315360899
     },
     {
-      "timestamp": "2026-01-18T08:55:05.243265",
+      "timestamp": "2026-01-18T10:55:14.807465",
       "greeks": {
-        "delta": 14.930000000000007,
-        "gamma": 0.09306431000464431,
-        "vega": 0.13023491905951892,
-        "theta": -0.2071489983224935,
-        "total_value": 1893.58,
+        "delta": 616.3461602834326,
+        "gamma": 6.759676654026627,
+        "vega": 15.350167350523764,
+        "theta": -134.68079917872922,
+        "total_value": 101.10287392072466,
         "num_positions": 160
       },
       "num_positions": 160,
-      "total_value": 1893.58
+      "total_value": 101.10287392072466
     },
     {
-      "timestamp": "2026-01-18T08:55:25.714548",
+      "timestamp": "2026-01-18T10:55:16.781748",
       "greeks": {
-        "delta": 14.939999999999998,
-        "gamma": 0.09303170148339697,
-        "vega": 0.13020263662348402,
-        "theta": -0.2072095438436363,
-        "total_value": 1892.58,
+        "delta": 641.1761862593976,
+        "gamma": 6.438094504061912,
+        "vega": 15.270575768407497,
+        "theta": -135.2804644738698,
+        "total_value": 76.3597530356756,
         "num_positions": 160
       },
       "num_positions": 160,
-      "total_value": 1892.58
+      "total_value": 76.3597530356756
     },
     {
-      "timestamp": "2026-01-18T09:05:40.819670",
+      "timestamp": "2026-01-18T10:55:18.350737",
       "greeks": {
-        "delta": 24.939999999999998,
-        "gamma": 0.12564022273219047,
-        "vega": 0.16248507265978962,
-        "theta": -0.2681552724837344,
-        "total_value": 1896.08,
+        "delta": 506.37515751031685,
+        "gamma": 5.292600383217362,
+        "vega": 11.071258755435677,
+        "theta": -97.00958262141717,
+        "total_value": 52.29776940396469,
         "num_positions": 160
       },
       "num_positions": 160,
-      "total_value": 1896.08
+      "total_value": 52.29776940396469
+    },
+    {
+      "timestamp": "2026-01-18T10:55:19.674526",
+      "greeks": {
+        "delta": 357.47226410200574,
+        "gamma": 3.9151059199325733,
+        "vega": 6.6804951537154125,
+        "theta": -57.84170950428823,
+        "total_value": 29.962335392718032,
+        "num_positions": 160
+      },
+      "num_positions": 160,
+      "total_value": 29.962335392718032
+    },
+    {
+      "timestamp": "2026-01-18T10:55:20.992400",
+      "greeks": {
+        "delta": 244.79033579503604,
+        "gamma": 2.9024734047942955,
+        "vega": 3.278049902850801,
+        "theta": -27.253285979783584,
+        "total_value": 11.933226863602883,
+        "num_positions": 160
+      },
+      "num_positions": 160,
+      "total_value": 11.933226863602883
+    },
+    {
+      "timestamp": "2026-01-18T10:55:22.610269",
+      "greeks": {
+        "delta": 100.0,
+        "gamma": 1.2951341676425137,
+        "vega": 0.3205457064915221,
+        "theta": -2.4791144213546787,
+        "total_value": 0.35000000000000003,
+        "num_positions": 160
+      },
+      "num_positions": 160,
+      "total_value": 0.35000000000000003
+    },
+    {
+      "timestamp": "2026-01-18T10:55:26.808751",
+      "greeks": {
+        "delta": 0.0,
+        "gamma": 0.0,
+        "vega": 0.0,
+        "theta": 0.0,
+        "total_value": 0.0,
+        "num_positions": 160
+      },
+      "num_positions": 160,
+      "total_value": 0.0
+    },
+    {
+      "timestamp": "2026-01-18T10:55:44.608477",
+      "greeks": {
+        "delta": 1000.0,
+        "gamma": 12.951341676425136,
+        "vega": 3.2054570649152208,
+        "theta": -24.79114421354679,
+        "total_value": 3.5,
+        "num_positions": 160
+      },
+      "num_positions": 160,
+      "total_value": 3.5
     }
   ]
 }

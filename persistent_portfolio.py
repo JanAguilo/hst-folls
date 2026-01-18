@@ -116,8 +116,14 @@ class PersistentPortfolio:
                     categorized = categorize_markets_by_asset([market])
                     asset = list(categorized.keys())[0] if categorized else 'other'
                     
+                    # Use higher volatility and SCALE Greeks to match optimizer calculations
+                    # This ensures consistency between portfolio and optimizer
+                    sigma = 2.0  # Higher vol = more Greek exposure
                     bridge = BrownianBridge()
-                    greeks = bridge.greeks(market.yes_price, 0.5, tau_years, 30/365, is_yes=True)
+                    greeks_raw = bridge.greeks(market.yes_price, sigma, tau_years, 30/365, is_yes=True)
+                    
+                    # SCALE UP Greeks by 100x to match optimizer expectations
+                    SCALE_FACTOR = 100.0
                     
                     markets_with_greeks.append(PolymarketPosition(
                         market_id=market.id,
@@ -127,10 +133,10 @@ class PersistentPortfolio:
                         yes_price=market.yes_price,
                         no_price=market.no_price,
                         expiry_days=max(int(tau_years * 365), 1),
-                        delta=greeks.delta,
-                        gamma=greeks.gamma,
-                        vega=greeks.vega,
-                        theta=greeks.theta,
+                        delta=greeks_raw.delta * SCALE_FACTOR,
+                        gamma=greeks_raw.gamma * SCALE_FACTOR,
+                        vega=greeks_raw.vega * SCALE_FACTOR,
+                        theta=greeks_raw.theta * SCALE_FACTOR,
                         liquidity=market.liquidity,
                         volume=market.volume
                     ))

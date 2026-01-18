@@ -279,7 +279,7 @@ export const api = {
     }
   },
 
-  getPortfolioState: async (): Promise<{ current_greeks: Greeks; open_positions: any[] }> => {
+  getPortfolioState: async (): Promise<{ current_greeks: Greeks; open_positions: HypotheticalPosition[] }> => {
     try {
       const response = await fetch('http://localhost:5000/api/portfolio/state');
       

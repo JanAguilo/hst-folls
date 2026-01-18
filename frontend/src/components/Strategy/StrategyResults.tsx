@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle, TrendingUp, DollarSign, Target, ArrowRight, Info } from 'lucide-react';
+import { CheckCircle, TrendingUp, DollarSign, Target, ArrowRight, Info, Loader } from 'lucide-react';
 import type { Greeks } from '../../types';
 
 interface OptimalPosition {
@@ -31,12 +31,14 @@ interface StrategyResultsProps {
   result: StrategyResult | null;
   onApplyPositions: (positions: OptimalPosition[]) => void;
   onClose: () => void;
+  isApplying?: boolean;
 }
 
 export const StrategyResults: React.FC<StrategyResultsProps> = ({
   result,
   onApplyPositions,
-  onClose
+  onClose,
+  isApplying = false
 }) => {
   if (!result) return null;
 
@@ -259,15 +261,24 @@ export const StrategyResults: React.FC<StrategyResultsProps> = ({
       <div className="flex gap-3">
         <button
           onClick={onClose}
-          className="flex-1 px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg transition-colors"
+          disabled={isApplying}
+          className="flex-1 px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Close
         </button>
         <button
           onClick={() => onApplyPositions(result.optimal_positions)}
-          className="flex-1 px-6 py-3 bg-gradient-to-r from-primary-600 to-blue-600 hover:from-primary-500 hover:to-blue-500 text-white font-semibold rounded-lg transition-all"
+          disabled={isApplying}
+          className="flex-1 px-6 py-3 bg-gradient-to-r from-primary-600 to-blue-600 hover:from-primary-500 hover:to-blue-500 text-white font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
-          Apply These Positions
+          {isApplying ? (
+            <>
+              <Loader className="w-5 h-5 animate-spin" />
+              Applying Positions...
+            </>
+          ) : (
+            'Apply These Positions'
+          )}
         </button>
       </div>
 

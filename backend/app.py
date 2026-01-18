@@ -50,7 +50,23 @@ def get_portfolio():
                     os.path.join(BASE_DIR, 'commodity_vs_core_assets_correlations.csv')
                 )
             else:
-                print(f"[OK] Portfolio loaded successfully from {PORTFOLIO_FILE}")
+                # CRITICAL: Check if portfolio has correctly scaled Greeks
+                # If Greeks are too small, it means we're using an old portfolio with unscaled Greeks
+                if len(persistent_portfolio.manager.portfolio.positions) > 0:
+                    sample_pos = persistent_portfolio.manager.portfolio.positions[0]
+                    if abs(sample_pos.delta) < 0.1:  # Should be ~1.0 for typical market
+                        print(f"[WARN] Portfolio has unscaled Greeks (delta={sample_pos.delta:.6f})")
+                        print(f"[WARN] Deleting old portfolio and reinitializing with scaled Greeks...")
+                        os.remove(PORTFOLIO_FILE)
+                        history_file = PORTFOLIO_FILE.replace('.json', '_history.json')
+                        if os.path.exists(history_file):
+                            os.remove(history_file)
+                        persistent_portfolio.initialize_from_markets(
+                            COMMODITY_MARKETS_PATH,
+                            os.path.join(BASE_DIR, 'commodity_vs_core_assets_correlations.csv')
+                        )
+                    else:
+                        print(f"[OK] Portfolio loaded successfully from {PORTFOLIO_FILE}")
         except Exception as e:
             print(f"[ERROR] Could not initialize portfolio: {e}")
             import traceback
@@ -656,17 +672,25 @@ def add_portfolio_position():
         if not market_id or quantity == 0:
             return jsonify({'error': 'market_id and non-zero quantity required'}), 400
         
-        # Adjust quantity based on side (NO positions are negative)
+        # Adjust quantity based on side
+        # Positive quantity = add shares, Negative quantity = remove shares
+        # For NO positions, flip the sign (NO positions are internally negative)
         if side == 'NO':
-            quantity = -abs(quantity)
-        else:
-            quantity = abs(quantity)
+            # NO positions are stored as negative quantities
+            # quantity=10, side=NO → -10 (add 10 NO shares)
+            # quantity=-10, side=NO → +10 (remove 10 NO shares)
+            quantity = -quantity
+        # For YES positions, keep quantity as-is
+        # quantity=10, side=YES → +10 (add 10 YES shares)
+        # quantity=-10, side=YES → -10 (remove 10 YES shares)
         
         # Get portfolio
         portfolio = get_portfolio()
         
         # Check if market exists in portfolio, if not, we need to add it first
         existing_position = portfolio.manager.portfolio.get_position(market_id) if portfolio.manager else None
+        greeks = None  # Initialize greeks variable
+        
         if existing_position is None:
             # Market not in portfolio, need to find it and add it
             print(f"[INFO] Market {market_id} not found in portfolio, searching for market data...")
@@ -752,16 +776,29 @@ def add_portfolio_position():
             print(f"[OK] Added market {market_id} to portfolio")
         
         # Add position
+        # For positions from optimizer, we don't use correlation adjustments
+        # because optimizer assumes simple Greek summation
+        print(f"[ADD_POS] Adding {quantity:.2f} shares ({side}) of market {market_id}")
+        
+        # Get position Greeks for logging (whether it was just added or already existed)
+        position = portfolio.manager.portfolio.get_position(market_id)
+        if position:
+            print(f"[ADD_POS] Market Greeks: D={position.delta:.6f}, G={position.gamma:.6f}, V={position.vega:.6f}, T={position.theta:.6f}")
+            print(f"[ADD_POS] Expected contribution: D={position.delta * quantity:.6f}, G={position.gamma * quantity:.6f}")
+        
         portfolio.add_position(
             market_id=market_id,
             quantity=quantity,
-            use_correlations=use_correlations,
+            use_correlations=False,  # Always False - optimizer doesn't account for correlations
             notes=f"Added from UI: {side} {abs(quantity)} shares"
         )
         
         # Get updated state
-        current_greeks = portfolio.get_current_greeks(use_correlations)
+        # Always use use_correlations=False to match optimizer calculations
+        current_greeks = portfolio.get_current_greeks(use_correlations=False)
         open_positions = portfolio.get_open_positions()
+        
+        print(f"[ADD_POS] Portfolio Greeks after add: D={current_greeks.get('delta', 0):.6f}, G={current_greeks.get('gamma', 0):.6f}")
         
         return jsonify({
             'success': True,
@@ -790,30 +827,70 @@ def get_portfolio_state():
     Response:
     {
         "current_greeks": {...},
-        "open_positions": [...],
+        "open_positions": [...],  # Transformed for frontend
         "num_positions": int,
         "total_value": float
     }
     """
     try:
-        use_correlations = request.args.get('use_correlations', 'true').lower() == 'true'
+        # Default to False to match optimizer behavior (simple Greek summation)
+        use_correlations = request.args.get('use_correlations', 'false').lower() == 'true'
         
         # Get portfolio
         portfolio = get_portfolio()
         
         # Get state
         current_greeks = portfolio.get_current_greeks(use_correlations)
-        open_positions = portfolio.get_open_positions()
+        open_positions_raw = portfolio.get_open_positions()
+        
+        # Transform open_positions to match frontend HypotheticalPosition interface
+        open_positions_transformed = []
+        for pos in open_positions_raw:
+            # Find full market data from loaded markets
+            market_data = None
+            event_data = None
+            for event in markets_data.get('events', []):
+                for m in event.get('markets', []):
+                    if m.get('id') == pos['market_id']:
+                        market_data = m
+                        event_data = event
+                        break
+                if market_data:
+                    break
+            
+            if market_data:
+                open_positions_transformed.append({
+                    'market': {
+                        'id': pos['market_id'],
+                        'question': pos['question'],
+                        'slug': market_data.get('slug', ''),
+                        'endDate': market_data.get('endDate', ''),
+                        'yesPrice': pos['yes_price'],
+                        'noPrice': 1 - pos['yes_price'],
+                        'volume': market_data.get('volume', 0),
+                        'liquidity': market_data.get('liquidity', 0),
+                        'relatedCommodity': pos['asset_category'],
+                        'delta': pos['delta'],
+                        'gamma': pos['gamma'],
+                        'vega': pos['vega'],
+                        'theta': pos['theta'],
+                        'expiryDays': market_data.get('expiry_days', 30)
+                    },
+                    'side': 'YES' if pos['quantity'] > 0 else 'NO',
+                    'size': abs(pos['quantity'])
+                })
         
         return jsonify({
             'current_greeks': current_greeks,
-            'open_positions': open_positions,
-            'num_positions': len(open_positions),
+            'open_positions': open_positions_transformed,
+            'num_positions': len(open_positions_transformed),
             'total_value': current_greeks.get('total_value', 0)
         }), 200
         
     except Exception as e:
         print(f"Error in get_portfolio_state: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': f'Internal server error: {str(e)}'}), 500
 
 

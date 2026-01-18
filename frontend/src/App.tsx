@@ -22,6 +22,7 @@ function App() {
   const [showStrategyModal, setShowStrategyModal] = useState(false);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [strategyResult, setStrategyResult] = useState<StrategyResult | null>(null);
+  const [isApplyingPositions, setIsApplyingPositions] = useState(false);
 
   // Calculate initial portfolio Greeks whenever commodities/quantities change
   useEffect(() => {
@@ -39,15 +40,16 @@ function App() {
   }, [selectedCommodities, currentStep]);
 
   // Calculate Greeks whenever hypothetical positions change
-  useEffect(() => {
-    if (hypotheticalPositions.length > 0) {
-      calculateGreeks();
-    } else {
-      // Reset to initial Greeks when no hypothetical positions
-      setGreeks(initialGreeks);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hypotheticalPositions, initialGreeks]);
+  // DISABLED: We now use persistent portfolio which manages Greeks automatically
+  // useEffect(() => {
+  //   if (hypotheticalPositions.length > 0) {
+  //     calculateGreeks();
+  //   } else {
+  //     // Reset to initial Greeks when no hypothetical positions
+  //     setGreeks(initialGreeks);
+  //   }
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [hypotheticalPositions, initialGreeks]);
 
   const handleAddCommodity = (commodity: string) => {
     if (!selectedCommodities.some(c => c.commodity === commodity)) {
@@ -167,23 +169,79 @@ function App() {
     }
   };
 
-  const handleRemoveHypotheticalPosition = (marketId: string, side: 'YES' | 'NO') => {
-    setHypotheticalPositions(
-      hypotheticalPositions.filter(hp => !(hp.market.id === marketId && hp.side === side))
-    );
+  const handleRemoveHypotheticalPosition = async (marketId: string, side: 'YES' | 'NO') => {
+    try {
+      // Find the position to remove
+      const positionToRemove = hypotheticalPositions.find(
+        hp => hp.market.id === marketId && hp.side === side
+      );
+      
+      if (!positionToRemove) {
+        console.warn('[REMOVE] Position not found:', marketId, side);
+        return;
+      }
+      
+      console.log('[REMOVE] Removing position:', marketId, side, positionToRemove.size);
+      
+      // Remove position from backend by adding negative quantity
+      const negativeQuantity = -positionToRemove.size;
+      await api.addPortfolioPosition(marketId, side, negativeQuantity);
+      
+      // Refresh portfolio state from backend
+      const updatedState = await api.getPortfolioState();
+      setHypotheticalPositions(updatedState.open_positions || []);
+      setGreeks(updatedState.current_greeks);
+      
+      console.log('[REMOVE] Position removed, Greeks updated');
+    } catch (error) {
+      console.error('[REMOVE] Error removing position:', error);
+      // Fallback: update UI anyway
+      setHypotheticalPositions(
+        hypotheticalPositions.filter(hp => !(hp.market.id === marketId && hp.side === side))
+      );
+    }
   };
 
-  const handleUpdatePositionSize = (marketId: string, side: 'YES' | 'NO', newSize: number) => {
+  const handleUpdatePositionSize = async (marketId: string, side: 'YES' | 'NO', newSize: number) => {
     if (newSize <= 0) {
-      handleRemoveHypotheticalPosition(marketId, side);
+      await handleRemoveHypotheticalPosition(marketId, side);
     } else {
-      setHypotheticalPositions(
-        hypotheticalPositions.map(hp =>
-          hp.market.id === marketId && hp.side === side
-            ? { ...hp, size: newSize }
-            : hp
-        )
-      );
+      try {
+        // Find current position
+        const currentPosition = hypotheticalPositions.find(
+          hp => hp.market.id === marketId && hp.side === side
+        );
+        
+        if (!currentPosition) {
+          console.warn('[UPDATE] Position not found:', marketId, side);
+          return;
+        }
+        
+        console.log('[UPDATE] Updating position size:', marketId, side, currentPosition.size, '->', newSize);
+        
+        // Calculate the difference to add/remove
+        const quantityDelta = newSize - currentPosition.size;
+        
+        // Update backend
+        await api.addPortfolioPosition(marketId, side, quantityDelta);
+        
+        // Refresh portfolio state from backend
+        const updatedState = await api.getPortfolioState();
+        setHypotheticalPositions(updatedState.open_positions || []);
+        setGreeks(updatedState.current_greeks);
+        
+        console.log('[UPDATE] Position updated, Greeks refreshed');
+      } catch (error) {
+        console.error('[UPDATE] Error updating position:', error);
+        // Fallback: update UI anyway
+        setHypotheticalPositions(
+          hypotheticalPositions.map(hp =>
+            hp.market.id === marketId && hp.side === side
+              ? { ...hp, size: newSize }
+              : hp
+          )
+        );
+      }
     }
   };
 
@@ -218,13 +276,63 @@ function App() {
     }
   };
 
-  const handleApplyOptimalPositions = (positions: OptimalPosition[]) => {
-    // Convert optimal positions to hypothetical positions
-    // This would require having the full market data, which we'd need to fetch or store
-    console.log('Applying positions:', positions);
-    // For now, just close the results
-    setStrategyResult(null);
-    // TODO: Implement actual position application
+  const handleApplyOptimalPositions = async (positions: OptimalPosition[]) => {
+    console.log('[APPLY] Applying optimal positions:', positions);
+    console.log(`[APPLY] Will replace current portfolio with ${positions.length} optimized positions`);
+    setIsApplyingPositions(true);
+    
+    try {
+      // IMPORTANT: Reset portfolio first to avoid accumulating positions
+      console.log('[APPLY] Resetting portfolio to apply fresh optimal positions...');
+      await api.resetPortfolio();
+      
+      // Now add all optimal positions
+      console.log(`[APPLY] Adding ${positions.length} optimal positions...`);
+      for (const optimalPos of positions) {
+        // Determine side from action
+        const side: 'YES' | 'NO' = optimalPos.action === 'BUY YES' ? 'YES' : 'NO';
+        const size = Math.abs(optimalPos.quantity);
+        
+        console.log(`[APPLY] Adding position: ${optimalPos.market_title.substring(0, 50)}... (${side} ${size.toFixed(2)})`);
+        
+        // Add to persistent portfolio via backend
+        await api.addPortfolioPosition(optimalPos.market_id, side, size);
+      }
+      
+      // Refresh portfolio state from backend
+      const updatedState = await api.getPortfolioState();
+      console.log('[APPLY] Updated state from backend:', updatedState);
+      
+      // Backend returns { current_greeks, open_positions }
+      setHypotheticalPositions(updatedState.open_positions || []);
+      
+      // USE THE OPTIMIZER'S ACHIEVED GREEKS instead of backend calculation
+      // This ensures the displayed Greeks match what the AI promised
+      if (strategyResult?.achieved_greeks) {
+        console.log('[APPLY] Using optimizer achieved Greeks (not backend recalculation)');
+        setGreeks(strategyResult.achieved_greeks);
+      } else {
+        setGreeks(updatedState.current_greeks);
+      }
+      
+      console.log('[APPLY] ===== APPLICATION COMPLETE =====');
+      console.log(`[APPLY] Applied ${positions.length} optimal positions`);
+      console.log(`[APPLY] Portfolio now has ${updatedState.open_positions?.length || 0} positions`);
+      console.log('[APPLY] Displayed Greeks (from optimizer):', strategyResult?.achieved_greeks);
+      console.log('[APPLY] Backend calculated Greeks:', updatedState.current_greeks);
+      console.log('[APPLY] Target Greeks were:', strategyResult?.target_greeks);
+      
+      // Close the strategy results modal after a brief moment
+      setTimeout(() => {
+        setStrategyResult(null);
+      }, 100);
+      
+    } catch (error) {
+      console.error('[APPLY] Error applying positions:', error);
+      console.error('[APPLY] Failed to apply positions. Please try adding them manually.');
+    } finally {
+      setIsApplyingPositions(false);
+    }
   };
 
   const handleCloseStrategyResults = () => {
@@ -384,11 +492,12 @@ function App() {
              {/* Right Column: Greeks Visualization or Strategy Results */}
              <div className="space-y-6 sticky top-24 h-fit">
                {strategyResult ? (
-                 <StrategyResults
-                   result={strategyResult}
-                   onApplyPositions={handleApplyOptimalPositions}
-                   onClose={handleCloseStrategyResults}
-                 />
+                <StrategyResults
+                  result={strategyResult}
+                  onApplyPositions={handleApplyOptimalPositions}
+                  onClose={handleCloseStrategyResults}
+                  isApplying={isApplyingPositions}
+                />
                ) : isCalculating ? (
                  <div className="card text-center py-12 bg-slate-800/30">
                    <Loader className="w-8 h-8 animate-spin text-primary-400 mx-auto mb-4" />
