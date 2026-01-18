@@ -247,6 +247,75 @@ export const api = {
     return null;
   },
 
+  // Portfolio Management (Persistent)
+  addPortfolioPosition: async (
+    marketId: string,
+    side: 'YES' | 'NO',
+    size: number
+  ): Promise<{ success: boolean; current_greeks: Greeks; open_positions: any[] }> => {
+    try {
+      const response = await fetch('http://localhost:5000/api/portfolio/add-position', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          market_id: marketId,
+          quantity: size,
+          side: side,
+          use_correlations: true
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error adding portfolio position:', error);
+      throw error;
+    }
+  },
+
+  getPortfolioState: async (): Promise<{ current_greeks: Greeks; open_positions: any[] }> => {
+    try {
+      const response = await fetch('http://localhost:5000/api/portfolio/state');
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error getting portfolio state:', error);
+      return {
+        current_greeks: { delta: 0, gamma: 0, vega: 0, theta: 0, rho: 0 },
+        open_positions: []
+      };
+    }
+  },
+
+  resetPortfolio: async (): Promise<{ success: boolean }> => {
+    try {
+      const response = await fetch('http://localhost:5000/api/portfolio/reset', {
+        method: 'POST'
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error resetting portfolio:', error);
+      throw error;
+    }
+  },
+
   // AI Strategy Optimization
   optimizeStrategy: async (
     commodities: CommodityWithQuantity[],
@@ -255,6 +324,9 @@ export const api = {
     selectedCommodities: string[]
   ): Promise<StrategyResult> => {
     try {
+      // Filter out rho as it's not supported by the optimizer
+      const { rho, ...supportedGreeks } = targetGreeks;
+      
       const response = await fetch('http://localhost:5000/api/strategy/optimize', {
         method: 'POST',
         headers: {
@@ -262,7 +334,7 @@ export const api = {
         },
         body: JSON.stringify({
           commodities,
-          target_greeks: targetGreeks,
+          target_greeks: supportedGreeks,
           max_budget: maxBudget,
           selected_commodities: selectedCommodities
         })

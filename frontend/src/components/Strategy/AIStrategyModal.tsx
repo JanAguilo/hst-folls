@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Sparkles, TrendingUp, Target, DollarSign, Loader } from 'lucide-react';
 import type { Greeks, CommodityWithQuantity } from '../../types';
 
@@ -22,14 +22,27 @@ export const AIStrategyModal: React.FC<AIStrategyModalProps> = ({
   isOptimizing
 }) => {
   const [targetGreeks, setTargetGreeks] = useState<Greeks>({
-    delta: initialGreeks?.delta || 0,
-    gamma: initialGreeks?.gamma || 0,
-    vega: initialGreeks?.vega || 0,
-    theta: initialGreeks?.theta || 0,
-    rho: initialGreeks?.rho || 0
+    delta: 0,
+    gamma: 0,
+    vega: 0,
+    theta: 0,
+    rho: 0
   });
   
   const [maxBudget, setMaxBudget] = useState<number>(5000);
+
+  // Update target Greeks when initialGreeks changes or modal opens
+  useEffect(() => {
+    if (isOpen && initialGreeks) {
+      setTargetGreeks({
+        delta: initialGreeks.delta || 0,
+        gamma: initialGreeks.gamma || 0,
+        vega: initialGreeks.vega || 0,
+        theta: initialGreeks.theta || 0,
+        rho: initialGreeks.rho || 0
+      });
+    }
+  }, [isOpen, initialGreeks]);
 
   const handleGreekChange = (greek: keyof Greeks, value: string) => {
     const numValue = parseFloat(value) || 0;
@@ -38,6 +51,18 @@ export const AIStrategyModal: React.FC<AIStrategyModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate that at least one Greek is non-zero
+    const hasNonZeroGreek = Math.abs(targetGreeks.delta) > 0.0001 ||
+                            Math.abs(targetGreeks.gamma) > 0.0001 ||
+                            Math.abs(targetGreeks.vega) > 0.0001 ||
+                            Math.abs(targetGreeks.theta) > 0.0001;
+    
+    if (!hasNonZeroGreek) {
+      alert('Please enter at least one non-zero target Greek value. Click "Use Current" to use your initial portfolio Greeks.');
+      return;
+    }
+    
     await onOptimize(targetGreeks, maxBudget);
   };
 

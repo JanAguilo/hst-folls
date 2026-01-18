@@ -9,7 +9,9 @@ from datetime import datetime, timezone
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from portfolio_to_greeks import calculate_portfolio_greeks
 from strategy_optimizer import optimize_strategy
-from polymarket_greeks import PolymarketMarket, Greeks, BlackScholesDigital, BrownianBridge
+from polymarket_greeks import PolymarketMarket, Greeks, BlackScholesDigital, BrownianBridge, categorize_markets_by_asset
+from persistent_portfolio import PersistentPortfolio
+from integrated_portfolio_manager import PolymarketPosition
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend requests
@@ -22,6 +24,39 @@ COMMODITY_MAPPING_PATH = os.path.join(BASE_DIR, 'commodity_to_main_asset_mapping
 # Initialize Greeks calculators
 bs_calculator = BlackScholesDigital()
 bridge_calculator = BrownianBridge()
+
+# Initialize persistent portfolio (one per session for now - in production, use user-specific files)
+PORTFOLIO_FILE = os.path.join(BASE_DIR, 'user_portfolio.json')
+persistent_portfolio = None
+
+def get_portfolio():
+    """Get or create persistent portfolio"""
+    global persistent_portfolio
+    if persistent_portfolio is None:
+        try:
+            persistent_portfolio = PersistentPortfolio(PORTFOLIO_FILE)
+            # If portfolio file doesn't exist, initialize it
+            if not os.path.exists(PORTFOLIO_FILE):
+                print(f"[INIT] Portfolio file not found, initializing from markets...")
+                persistent_portfolio.initialize_from_markets(
+                    COMMODITY_MARKETS_PATH,
+                    os.path.join(BASE_DIR, 'commodity_vs_core_assets_correlations.csv')
+                )
+            # If portfolio exists but manager is None, it means loading failed - reinitialize
+            elif persistent_portfolio.manager is None:
+                print(f"[WARN] Portfolio file exists but not loaded, reinitializing...")
+                persistent_portfolio.initialize_from_markets(
+                    COMMODITY_MARKETS_PATH,
+                    os.path.join(BASE_DIR, 'commodity_vs_core_assets_correlations.csv')
+                )
+            else:
+                print(f"[OK] Portfolio loaded successfully from {PORTFOLIO_FILE}")
+        except Exception as e:
+            print(f"[ERROR] Could not initialize portfolio: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
+    return persistent_portfolio
 
 # Load markets data
 with open(COMMODITY_MARKETS_PATH, 'r', encoding='utf-8') as f:
@@ -492,9 +527,18 @@ def optimize_portfolio_strategy():
                 'target_greeks': target_greeks
             }), 200
         
-        print(f"Found {len(all_markets_with_greeks)} markets for optimization")
+        # Limit to top markets by liquidity to speed up optimization
+        if len(all_markets_with_greeks) > 30:
+            print(f"Found {len(all_markets_with_greeks)} markets, limiting to top 30 by liquidity")
+            all_markets_with_greeks.sort(key=lambda x: x.get('liquidity', 0), reverse=True)
+            all_markets_with_greeks = all_markets_with_greeks[:30]
+        
+        print(f"Optimizing with {len(all_markets_with_greeks)} markets")
+        print(f"Target Greeks: {target_greeks}")
+        print(f"Max Budget: ${max_budget}")
         
         # Run optimization
+        print("Starting optimization...")
         result = optimize_strategy(
             markets_with_greeks=all_markets_with_greeks,
             target_greeks=target_greeks,
@@ -502,12 +546,247 @@ def optimize_portfolio_strategy():
             initial_greeks=initial_greeks
         )
         
+        print(f"Optimization complete! Success: {result.get('success')}")
+        print(f"Positions found: {result.get('num_positions', 0)}")
+        print(f"Total investment: ${result.get('total_investment', 0):.2f}")
+        
         return jsonify(result), 200
         
     except Exception as e:
         print(f"Error in optimize_portfolio_strategy: {str(e)}")
         import traceback
         traceback.print_exc()
+        return jsonify({'error': f'Internal server error: {str(e)}'}), 500
+
+
+@app.route('/api/portfolio/add-position', methods=['POST'])
+def add_portfolio_position():
+    """
+    Add a hypothetical position to the persistent portfolio.
+    
+    Request body:
+    {
+        "market_id": str,
+        "quantity": float,
+        "side": "YES" or "NO",
+        "use_correlations": bool (optional, default True)
+    }
+    
+    Response:
+    {
+        "success": bool,
+        "position_added": {...},
+        "current_greeks": {...},
+        "open_positions": [...],
+        "message": str
+    }
+    """
+    try:
+        data = request.get_json()
+        market_id = data.get('market_id')
+        quantity = float(data.get('quantity', 0))
+        side = data.get('side', 'YES')
+        use_correlations = data.get('use_correlations', True)
+        
+        if not market_id or quantity == 0:
+            return jsonify({'error': 'market_id and non-zero quantity required'}), 400
+        
+        # Adjust quantity based on side (NO positions are negative)
+        if side == 'NO':
+            quantity = -abs(quantity)
+        else:
+            quantity = abs(quantity)
+        
+        # Get portfolio
+        portfolio = get_portfolio()
+        
+        # Check if market exists in portfolio, if not, we need to add it first
+        existing_position = portfolio.manager.portfolio.get_position(market_id) if portfolio.manager else None
+        if existing_position is None:
+            # Market not in portfolio, need to find it and add it
+            print(f"[INFO] Market {market_id} not found in portfolio, searching for market data...")
+            
+            # Search for market in markets_data
+            market_data = None
+            event_data = None
+            
+            for event in markets_data.get('events', []):
+                for market in event.get('markets', []):
+                    if market.get('id') == market_id:
+                        market_data = market
+                        event_data = event
+                        break
+                if market_data:
+                    break
+            
+            if not market_data:
+                return jsonify({'error': f'Market {market_id} not found in available markets'}), 404
+            
+            # Parse prices
+            yes_price = 0.5
+            no_price = 0.5
+            try:
+                if market_data.get('outcomePrices'):
+                    prices = json.loads(market_data['outcomePrices']) if isinstance(market_data['outcomePrices'], str) else market_data['outcomePrices']
+                    yes_price = float(prices[0]) if len(prices) > 0 else 0.5
+                    no_price = float(prices[1]) if len(prices) > 1 else 0.5
+            except (json.JSONDecodeError, ValueError, TypeError, KeyError):
+                yes_price = 0.5
+                no_price = 0.5
+            
+            # Calculate days to expiry
+            try:
+                end_date_str = market_data.get('endDate') or event_data.get('endDate')
+                if end_date_str:
+                    end_date = datetime.fromisoformat(end_date_str.replace('Z', '+00:00'))
+                    days_to_expiry = max(1, int((end_date - datetime.now(timezone.utc)).total_seconds() / 86400))
+                else:
+                    days_to_expiry = 30  # Default
+            except (ValueError, TypeError):
+                days_to_expiry = 30
+            
+            # Calculate Greeks for this market
+            greeks = calculate_market_greeks(yes_price, days_to_expiry)
+            
+            # Categorize market by asset
+            # Create a temporary PolymarketMarket object for categorization
+            temp_market = PolymarketMarket(
+                id=market_id,
+                question=market_data.get('question', ''),
+                slug=market_data.get('slug', ''),
+                end_date=datetime.fromisoformat(end_date_str.replace('Z', '+00:00')) if end_date_str else datetime.now(timezone.utc),
+                yes_price=yes_price,
+                no_price=no_price,
+                volume=float(market_data.get('volume', 0)) if market_data.get('volume') else 0,
+                liquidity=float(market_data.get('liquidity', 0)) if market_data.get('liquidity') else 0,
+                related_commodity=event_data.get('relatedCommodity') if event_data else None
+            )
+            
+            categorized = categorize_markets_by_asset([temp_market])
+            asset_category = list(categorized.keys())[0] if categorized else 'other'
+            
+            # Add market to portfolio using IntegratedPortfolioManager
+            new_position = PolymarketPosition(
+                market_id=market_id,
+                question=market_data.get('question', ''),
+                asset_category=asset_category,
+                quantity=0.0,  # Start with 0 quantity
+                yes_price=yes_price,
+                no_price=no_price,
+                expiry_days=days_to_expiry,
+                delta=greeks.delta,
+                gamma=greeks.gamma,
+                vega=greeks.vega,
+                theta=greeks.theta,
+                liquidity=float(market_data.get('liquidity', 0)) if market_data.get('liquidity') else 0,
+                volume=float(market_data.get('volume', 0)) if market_data.get('volume') else 0
+            )
+            
+            # Add position to portfolio
+            portfolio.manager.portfolio.positions.append(new_position)
+            print(f"[OK] Added market {market_id} to portfolio")
+        
+        # Add position
+        portfolio.add_position(
+            market_id=market_id,
+            quantity=quantity,
+            use_correlations=use_correlations,
+            notes=f"Added from UI: {side} {abs(quantity)} shares"
+        )
+        
+        # Get updated state
+        current_greeks = portfolio.get_current_greeks(use_correlations)
+        open_positions = portfolio.get_open_positions()
+        
+        return jsonify({
+            'success': True,
+            'position_added': {
+                'market_id': market_id,
+                'quantity': quantity,
+                'side': side
+            },
+            'current_greeks': current_greeks,
+            'open_positions': open_positions,
+            'message': f'Position added successfully'
+        }), 200
+        
+    except Exception as e:
+        print(f"Error in add_portfolio_position: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Internal server error: {str(e)}'}), 500
+
+
+@app.route('/api/portfolio/state', methods=['GET'])
+def get_portfolio_state():
+    """
+    Get current portfolio state.
+    
+    Response:
+    {
+        "current_greeks": {...},
+        "open_positions": [...],
+        "num_positions": int,
+        "total_value": float
+    }
+    """
+    try:
+        use_correlations = request.args.get('use_correlations', 'true').lower() == 'true'
+        
+        # Get portfolio
+        portfolio = get_portfolio()
+        
+        # Get state
+        current_greeks = portfolio.get_current_greeks(use_correlations)
+        open_positions = portfolio.get_open_positions()
+        
+        return jsonify({
+            'current_greeks': current_greeks,
+            'open_positions': open_positions,
+            'num_positions': len(open_positions),
+            'total_value': current_greeks.get('total_value', 0)
+        }), 200
+        
+    except Exception as e:
+        print(f"Error in get_portfolio_state: {str(e)}")
+        return jsonify({'error': f'Internal server error: {str(e)}'}), 500
+
+
+@app.route('/api/portfolio/reset', methods=['POST'])
+def reset_portfolio():
+    """
+    Reset portfolio to empty state.
+    
+    Response:
+    {
+        "success": bool,
+        "message": str
+    }
+    """
+    try:
+        global persistent_portfolio
+        
+        # Delete portfolio file if exists
+        if os.path.exists(PORTFOLIO_FILE):
+            os.remove(PORTFOLIO_FILE)
+        
+        history_file = PORTFOLIO_FILE.replace('.json', '_history.json')
+        if os.path.exists(history_file):
+            os.remove(history_file)
+        
+        # Reset portfolio object
+        persistent_portfolio = None
+        
+        # Reinitialize
+        get_portfolio()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Portfolio reset successfully'
+        }), 200
+        
+    except Exception as e:
+        print(f"Error in reset_portfolio: {str(e)}")
         return jsonify({'error': f'Internal server error: {str(e)}'}), 500
 
 
@@ -529,6 +808,9 @@ if __name__ == '__main__':
     print("[API] API Endpoints:")
     print("   - POST /api/search-markets")
     print("   - POST /api/portfolio/initial-greeks")
+    print("   - POST /api/portfolio/add-position")
+    print("   - GET  /api/portfolio/state")
+    print("   - POST /api/portfolio/reset")
     print("   - POST /api/strategy/optimize")
     print("   - GET  /api/health\n")
     

@@ -127,25 +127,43 @@ function App() {
     }
   };
 
-  const handleAddHypotheticalPosition = (market: PolymarketMarket, side: 'YES' | 'NO', size: number) => {
+  const handleAddHypotheticalPosition = async (market: PolymarketMarket, side: 'YES' | 'NO', size: number) => {
     try {
-      const existing = hypotheticalPositions.find(hp => hp.market.id === market.id && hp.side === side);
-      if (existing) {
-        // Update size if position already exists
-        setHypotheticalPositions(
-          hypotheticalPositions.map(hp =>
-            hp.market.id === market.id && hp.side === side
-              ? { ...hp, size: hp.size + size }
-              : hp
-          )
-        );
-      } else {
-        // Add new position
-        const newPosition: HypotheticalPosition = { market, side, size };
-        setHypotheticalPositions([...hypotheticalPositions, newPosition]);
+      // Add position to persistent backend
+      const result = await api.addPortfolioPosition(market.id, side, size);
+      
+      if (result.success) {
+        console.log('✅ Position added to persistent portfolio');
+        
+        // Update Greeks from backend
+        const portfolioGreeks: Greeks = {
+          delta: result.current_greeks.delta || 0,
+          gamma: result.current_greeks.gamma || 0,
+          vega: result.current_greeks.vega || 0,
+          theta: result.current_greeks.theta || 0,
+          rho: result.current_greeks.rho || 0
+        };
+        
+        setGreeks(portfolioGreeks);
+        
+        // Update hypothetical positions list for UI display
+        const existing = hypotheticalPositions.find(hp => hp.market.id === market.id && hp.side === side);
+        if (existing) {
+          setHypotheticalPositions(
+            hypotheticalPositions.map(hp =>
+              hp.market.id === market.id && hp.side === side
+                ? { ...hp, size: hp.size + size }
+                : hp
+            )
+          );
+        } else {
+          const newPosition: HypotheticalPosition = { market, side, size };
+          setHypotheticalPositions([...hypotheticalPositions, newPosition]);
+        }
       }
     } catch (error) {
       console.error('Error adding hypothetical position:', error);
+      alert('Failed to add position. Please make sure the backend server is running.');
     }
   };
 
@@ -171,6 +189,7 @@ function App() {
 
   const handleOptimizeStrategy = async (targetGreeks: Greeks, maxBudget: number) => {
     setIsOptimizing(true);
+    console.log('[OPTIMIZE] Starting optimization...', { targetGreeks, maxBudget, commodityNames });
     try {
       const result = await api.optimizeStrategy(
         selectedCommodities,
@@ -178,10 +197,22 @@ function App() {
         maxBudget,
         commodityNames
       );
-      setStrategyResult(result);
-      setShowStrategyModal(false);
+      console.log('[OPTIMIZE] Optimization result:', result);
+      
+      if (result && result.success !== false) {
+        // Set result and close modal
+        setStrategyResult(result);
+        setShowStrategyModal(false);
+      } else {
+        // Optimization failed
+        const errorMsg = result?.metrics?.error || result?.error || 'Unknown error';
+        console.error('[OPTIMIZE] Optimization failed:', errorMsg);
+        alert(`Optimization failed: ${errorMsg}`);
+      }
     } catch (error) {
-      console.error('Error optimizing strategy:', error);
+      console.error('[OPTIMIZE] Error optimizing strategy:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Failed to optimize strategy. Please check the console for details.';
+      alert(`Error: ${errorMsg}`);
     } finally {
       setIsOptimizing(false);
     }
@@ -365,40 +396,10 @@ function App() {
                  </div>
                ) : greeks ? (
                  <div className="animate-fade-in">
-                   <GreeksDisplay 
-                     greeks={greeks} 
-                     title={hypotheticalPositions.length > 0 ? "Portfolio Greeks (With Hypothetical Positions)" : "Initial Portfolio Greeks"} 
-                   />
-                   
-                   <div className="card mt-6 bg-gradient-to-br from-primary-500/10 to-blue-500/10 border-primary-500/30">
-                     <h3 className="text-xl font-bold mb-3">Portfolio Analysis</h3>
-                     <div className="space-y-2 text-slate-300">
-                       <p>
-                         <span className="font-semibold text-white">Risk Exposure:</span>{' '}
-                         {Math.abs(greeks.delta) < 20 ? 'Low' : Math.abs(greeks.delta) < 50 ? 'Moderate' : 'High'}
-                       </p>
-                       <p>
-                         <span className="font-semibold text-white">Delta Direction:</span>{' '}
-                         {greeks.delta > 0 ? 'Bullish (increases with price increases)' : greeks.delta < 0 ? 'Bearish (increases with price decreases)' : 'Neutral'}
-                       </p>
-                       {hypotheticalPositions.length > 0 && initialGreeks && (
-                         <div className="mt-4 pt-4 border-t border-primary-500/20">
-                           <p className="font-semibold text-white mb-2">Change from Initial Portfolio:</p>
-                           <p className="text-sm">
-                             <span className="font-semibold">Delta Change:</span>{' '}
-                             <span className={greeks.delta - initialGreeks.delta >= 0 ? 'text-danger-500' : 'text-success-500'}>
-                               {greeks.delta - initialGreeks.delta >= 0 ? '+' : ''}{(greeks.delta - initialGreeks.delta).toFixed(4)}
-                             </span>
-                           </p>
-                         </div>
-                       )}
-                       <p className="text-sm text-slate-400 mt-4">
-                         💡 {hypotheticalPositions.length > 0 
-                           ? 'These Greeks include your hypothetical positions. Adjust sizes and sides to optimize your risk profile before executing real trades.'
-                           : 'These are your initial portfolio Greeks based on your commodity positions. Add hypothetical positions to see how they would affect your risk profile.'}
-                       </p>
-                     </div>
-                   </div>
+                  <GreeksDisplay 
+                    greeks={greeks} 
+                    title={hypotheticalPositions.length > 0 ? "Portfolio Greeks (With Hypothetical Positions)" : "Initial Portfolio Greeks"} 
+                  />
                  </div>
                ) : selectedCommodities.some(c => c.quantity > 0) ? (
                  <div className="card text-center py-12 bg-slate-800/30 border-dashed">

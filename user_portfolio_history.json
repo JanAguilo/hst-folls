@@ -1,0 +1,411 @@
+{
+  "trade_history": [
+    {
+      "timestamp": "2026-01-18T06:28:02.363200",
+      "market_id": "1032232",
+      "question": "Will Gold (GC) hit (HIGH) $5,500 by end of January?",
+      "asset_category": "bitcoin",
+      "quantity": 1000.0,
+      "position_value": 8.0,
+      "greeks_before": {
+        "delta": 0.0,
+        "gamma": 0.0,
+        "vega": 0.0,
+        "theta": 0.0,
+        "total_value": 0.0,
+        "num_positions": 160
+      },
+      "greeks_after": {
+        "delta": 10.0,
+        "gamma": 0.03260852124852382,
+        "vega": 0.03228243603603858,
+        "theta": -0.06094572864060039,
+        "total_value": 8.0,
+        "num_positions": 160
+      },
+      "greek_changes": {
+        "delta": 10.0,
+        "gamma": 0.03260852124852382,
+        "vega": 0.03228243603603858,
+        "theta": -0.06094572864060039
+      },
+      "correlation_adjusted": true,
+      "notes": "Added from UI: YES 1000.0 shares"
+    },
+    {
+      "timestamp": "2026-01-18T06:28:30.110594",
+      "market_id": "1126851",
+      "question": "Will Venezuelan crude oil production reach 1.1m barrels per day in 2026?",
+      "asset_category": "bitcoin",
+      "quantity": 200.0,
+      "position_value": 145.0,
+      "greeks_before": {
+        "delta": 10.0,
+        "gamma": 0.03260852124852382,
+        "vega": 0.03228243603603858,
+        "theta": -0.06094572864060039,
+        "total_value": 8.0,
+        "num_positions": 160
+      },
+      "greeks_after": {
+        "delta": 12.0,
+        "gamma": 0.02810852124852382,
+        "vega": -0.05743631396396142,
+        "theta": -0.06592880006229243,
+        "total_value": 153.0,
+        "num_positions": 160
+      },
+      "greek_changes": {
+        "delta": 2.0,
+        "gamma": -0.0045000000000000005,
+        "vega": -0.08971875,
+        "theta": -0.004983071421692041
+      },
+      "correlation_adjusted": true,
+      "notes": "Added from UI: YES 200.0 shares"
+    },
+    {
+      "timestamp": "2026-01-18T06:28:45.205724",
+      "market_id": "1032409",
+      "question": "Will Crude Oil (CL) hit (LOW) $52 by end of June?",
+      "asset_category": "bitcoin",
+      "quantity": -2000.0,
+      "position_value": 1000.0,
+      "greeks_before": {
+        "delta": 12.0,
+        "gamma": 0.02810852124852382,
+        "vega": -0.05743631396396142,
+        "theta": -0.06592880006229243,
+        "total_value": 153.0,
+        "num_positions": 160
+      },
+      "greeks_after": {
+        "delta": -8.0,
+        "gamma": 0.02810852124852382,
+        "vega": -0.05743631396396142,
+        "theta": -0.06592880006229243,
+        "total_value": 1153.0,
+        "num_positions": 160
+      },
+      "greek_changes": {
+        "delta": -20.0,
+        "gamma": 0.0,
+        "vega": 0.0,
+        "theta": 0.0
+      },
+      "correlation_adjusted": true,
+      "notes": "Added from UI: NO 2000.0 shares"
+    },
+    {
+      "timestamp": "2026-01-18T06:32:18.152560",
+      "market_id": "1126857",
+      "question": "Will Venezuelan crude oil production reach 1.7m barrels per day in 2026?",
+      "asset_category": "bitcoin",
+      "quantity": 600.0,
+      "position_value": 48.0,
+      "greeks_before": {
+        "delta": -8.0,
+        "gamma": 0.02810852124852382,
+        "vega": -0.05743631396396142,
+        "theta": -0.06592880006229243,
+        "total_value": 1153.0,
+        "num_positions": 160
+      },
+      "greeks_after": {
+        "delta": -2.0,
+        "gamma": 0.053308521248523824,
+        "vega": 0.12803568603603854,
+        "theta": -0.07779178451989856,
+        "total_value": 1201.0,
+        "num_positions": 160
+      },
+      "greek_changes": {
+        "delta": 6.0,
+        "gamma": 0.025200000000000004,
+        "vega": 0.18547199999999997,
+        "theta": -0.011862984457606127
+      },
+      "correlation_adjusted": true,
+      "notes": "Added from UI: YES 600.0 shares"
+    },
+    {
+      "timestamp": "2026-01-18T06:32:51.414013",
+      "market_id": "1032233",
+      "question": "Will Gold (GC) hit (HIGH) $5,000 by end of January?",
+      "asset_category": "bitcoin",
+      "quantity": -100.0,
+      "position_value": 7.5,
+      "greeks_before": {
+        "delta": -2.0,
+        "gamma": 0.053308521248523824,
+        "vega": 0.12803568603603854,
+        "theta": -0.07779178451989856,
+        "total_value": 1201.0,
+        "num_positions": 160
+      },
+      "greeks_after": {
+        "delta": -3.0,
+        "gamma": 0.05048023114025565,
+        "vega": 0.10841442340992812,
+        "theta": -0.04001831475294537,
+        "total_value": 1208.5,
+        "num_positions": 160
+      },
+      "greek_changes": {
+        "delta": -1.0,
+        "gamma": -0.0028282901082681763,
+        "vega": -0.019621262626110428,
+        "theta": 0.037773469766953185
+      },
+      "correlation_adjusted": true,
+      "notes": "Added from UI: NO 100.0 shares"
+    },
+    {
+      "timestamp": "2026-01-18T06:33:32.594896",
+      "market_id": "1032235",
+      "question": "Will Gold (GC) hit (HIGH) $4,700 by end of January?",
+      "asset_category": "bitcoin",
+      "quantity": 1000.0,
+      "position_value": 540.0,
+      "greeks_before": {
+        "delta": -3.0,
+        "gamma": 0.05048023114025565,
+        "vega": 0.10841442340992812,
+        "theta": -0.04001831475294537,
+        "total_value": 1208.5,
+        "num_positions": 160
+      },
+      "greeks_after": {
+        "delta": 7.0,
+        "gamma": 0.047818311038396746,
+        "vega": 0.04229232807975293,
+        "theta": -0.15415602020891941,
+        "total_value": 1748.5,
+        "num_positions": 160
+      },
+      "greek_changes": {
+        "delta": 10.0,
+        "gamma": -0.0026619201018589014,
+        "vega": -0.06612209533017518,
+        "theta": -0.11413770545597404
+      },
+      "correlation_adjusted": true,
+      "notes": "Added from UI: YES 1000.0 shares"
+    },
+    {
+      "timestamp": "2026-01-18T06:33:44.775040",
+      "market_id": "1126851",
+      "question": "Will Venezuelan crude oil production reach 1.1m barrels per day in 2026?",
+      "asset_category": "bitcoin",
+      "quantity": -100.0,
+      "position_value": 72.5,
+      "greeks_before": {
+        "delta": 7.0,
+        "gamma": 0.047818311038396746,
+        "vega": 0.04229232807975293,
+        "theta": -0.15415602020891941,
+        "total_value": 1748.5,
+        "num_positions": 160
+      },
+      "greeks_after": {
+        "delta": 6.0,
+        "gamma": 0.05006831103839674,
+        "vega": 0.08715170307975292,
+        "theta": -0.15166448449807338,
+        "total_value": 1676.0,
+        "num_positions": 160
+      },
+      "greek_changes": {
+        "delta": -1.0,
+        "gamma": 0.002249999999999995,
+        "vega": 0.04485937499999999,
+        "theta": 0.002491535710846038
+      },
+      "correlation_adjusted": true,
+      "notes": "Added from UI: NO 100.0 shares"
+    },
+    {
+      "timestamp": "2026-01-18T07:51:23.478617",
+      "market_id": "1032232",
+      "question": "Will Gold (GC) hit (HIGH) $5,500 by end of January?",
+      "asset_category": "bitcoin",
+      "quantity": 100.0,
+      "position_value": 0.8,
+      "greeks_before": {
+        "delta": 6.0,
+        "gamma": 0.05006831103839674,
+        "vega": 0.08715170307975292,
+        "theta": -0.15166448449807338,
+        "total_value": 1676.0,
+        "num_positions": 160
+      },
+      "greeks_after": {
+        "delta": 7.0,
+        "gamma": 0.05332916316324912,
+        "vega": 0.09037994668335678,
+        "theta": -0.15775905736213341,
+        "total_value": 1676.8,
+        "num_positions": 160
+      },
+      "greek_changes": {
+        "delta": 1.0,
+        "gamma": 0.00326085212485238,
+        "vega": 0.003228243603603853,
+        "theta": -0.006094572864060038
+      },
+      "correlation_adjusted": true,
+      "notes": "Added from UI: YES 100.0 shares"
+    },
+    {
+      "timestamp": "2026-01-18T07:51:35.471588",
+      "market_id": "1032236",
+      "question": "Will Gold (GC) hit (HIGH) $4,600 by end of January?",
+      "asset_category": "bitcoin",
+      "quantity": -213.0,
+      "position_value": 213.0,
+      "greeks_before": {
+        "delta": 7.0,
+        "gamma": 0.05332916316324912,
+        "vega": 0.09037994668335678,
+        "theta": -0.15775905736213341,
+        "total_value": 1676.8,
+        "num_positions": 160
+      },
+      "greeks_after": {
+        "delta": 4.870000000000001,
+        "gamma": 0.06027477818893376,
+        "vega": 0.09725610555878458,
+        "theta": -0.14486286135871806,
+        "total_value": 1889.8,
+        "num_positions": 160
+      },
+      "greek_changes": {
+        "delta": -2.129999999999999,
+        "gamma": 0.006945615025684637,
+        "vega": 0.006876158875427807,
+        "theta": 0.01289619600341535
+      },
+      "correlation_adjusted": true,
+      "notes": "Added from UI: NO 213.0 shares"
+    }
+  ],
+  "greek_history": [
+    {
+      "timestamp": "2026-01-18T06:28:02.363285",
+      "greeks": {
+        "delta": 10.0,
+        "gamma": 0.03260852124852382,
+        "vega": 0.03228243603603858,
+        "theta": -0.06094572864060039,
+        "total_value": 8.0,
+        "num_positions": 160
+      },
+      "num_positions": 160,
+      "total_value": 8.0
+    },
+    {
+      "timestamp": "2026-01-18T06:28:30.110654",
+      "greeks": {
+        "delta": 12.0,
+        "gamma": 0.02810852124852382,
+        "vega": -0.05743631396396142,
+        "theta": -0.06592880006229243,
+        "total_value": 153.0,
+        "num_positions": 160
+      },
+      "num_positions": 160,
+      "total_value": 153.0
+    },
+    {
+      "timestamp": "2026-01-18T06:28:45.205768",
+      "greeks": {
+        "delta": -8.0,
+        "gamma": 0.02810852124852382,
+        "vega": -0.05743631396396142,
+        "theta": -0.06592880006229243,
+        "total_value": 1153.0,
+        "num_positions": 160
+      },
+      "num_positions": 160,
+      "total_value": 1153.0
+    },
+    {
+      "timestamp": "2026-01-18T06:32:18.152609",
+      "greeks": {
+        "delta": -2.0,
+        "gamma": 0.053308521248523824,
+        "vega": 0.12803568603603854,
+        "theta": -0.07779178451989856,
+        "total_value": 1201.0,
+        "num_positions": 160
+      },
+      "num_positions": 160,
+      "total_value": 1201.0
+    },
+    {
+      "timestamp": "2026-01-18T06:32:51.414075",
+      "greeks": {
+        "delta": -3.0,
+        "gamma": 0.05048023114025565,
+        "vega": 0.10841442340992812,
+        "theta": -0.04001831475294537,
+        "total_value": 1208.5,
+        "num_positions": 160
+      },
+      "num_positions": 160,
+      "total_value": 1208.5
+    },
+    {
+      "timestamp": "2026-01-18T06:33:32.595366",
+      "greeks": {
+        "delta": 7.0,
+        "gamma": 0.047818311038396746,
+        "vega": 0.04229232807975293,
+        "theta": -0.15415602020891941,
+        "total_value": 1748.5,
+        "num_positions": 160
+      },
+      "num_positions": 160,
+      "total_value": 1748.5
+    },
+    {
+      "timestamp": "2026-01-18T06:33:44.775111",
+      "greeks": {
+        "delta": 6.0,
+        "gamma": 0.05006831103839674,
+        "vega": 0.08715170307975292,
+        "theta": -0.15166448449807338,
+        "total_value": 1676.0,
+        "num_positions": 160
+      },
+      "num_positions": 160,
+      "total_value": 1676.0
+    },
+    {
+      "timestamp": "2026-01-18T07:51:23.478655",
+      "greeks": {
+        "delta": 7.0,
+        "gamma": 0.05332916316324912,
+        "vega": 0.09037994668335678,
+        "theta": -0.15775905736213341,
+        "total_value": 1676.8,
+        "num_positions": 160
+      },
+      "num_positions": 160,
+      "total_value": 1676.8
+    },
+    {
+      "timestamp": "2026-01-18T07:51:35.471640",
+      "greeks": {
+        "delta": 4.870000000000001,
+        "gamma": 0.06027477818893376,
+        "vega": 0.09725610555878458,
+        "theta": -0.14486286135871806,
+        "total_value": 1889.8,
+        "num_positions": 160
+      },
+      "num_positions": 160,
+      "total_value": 1889.8
+    }
+  ]
+}

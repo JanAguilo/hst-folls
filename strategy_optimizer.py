@@ -128,10 +128,14 @@ def optimize_strategy(
     )
     
     # Format response
+    # Add rho: 0 to achieved_greeks for frontend compatibility
+    achieved_greeks_with_rho = dict(result.achieved_greeks)
+    achieved_greeks_with_rho['rho'] = 0.0
+    
     response = {
         "success": result.success,
         "optimal_positions": result.recommendations,
-        "achieved_greeks": result.achieved_greeks,
+        "achieved_greeks": achieved_greeks_with_rho,
         "target_greeks": result.target_greeks,
         "deviations": result.deviations,
         "total_investment": result.total_investment,
@@ -142,11 +146,17 @@ def optimize_strategy(
     
     # Add initial Greeks if provided
     if initial_greeks:
-        response["initial_greeks"] = initial_greeks
+        # Ensure initial_greeks has rho
+        initial_greeks_with_rho = dict(initial_greeks)
+        if 'rho' not in initial_greeks_with_rho:
+            initial_greeks_with_rho['rho'] = 0.0
+        
+        response["initial_greeks"] = initial_greeks_with_rho
         response["greek_changes_from_initial"] = {
             greek: result.achieved_greeks.get(greek, 0.0) - initial_greeks.get(greek, 0.0)
             for greek in ['delta', 'gamma', 'vega', 'theta']
         }
+        response["greek_changes_from_initial"]['rho'] = 0.0
     
     return response
 
