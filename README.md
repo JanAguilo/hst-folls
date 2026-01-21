@@ -207,7 +207,6 @@ Tests:
 
 ## 🎯 Next Steps
 
-- [ ] Add real Greeks calculation algorithm
 - [ ] Add market data caching
 - [ ] Add user portfolio persistence
 - [ ] Add historical correlation visualization
